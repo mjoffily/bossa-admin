@@ -1,6 +1,7 @@
 .c9/
 data/
 node_modules/
+secure/
 # Logs
 logs
 *.log

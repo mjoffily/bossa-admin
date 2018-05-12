@@ -7,6 +7,7 @@ var axios = require('axios');
 //var utils = require('./api.utils');
 var conn = require('./api.connect');
 var constants = require('./api.constants');
+const SEC = require('../secure/credentials')
 
 
 //const API = 'https://angular2test-mjoffily.c9users.io:8080';
@@ -20,8 +21,8 @@ const API_ORDERS_COUNT = BASE_URL + '/orders/count.json?';
 const API_TRANSACTIONS_FOR_ORDER = BASE_URL + '/orders/$id/transactions.json';
 const API_POST_PRODUCT = BASE_URL + '/products.json';
 const CONFIG = {auth: {
-                    username: API_USER,
-                    password: API_PASS
+                    username: SEC.API_USER,
+                    password: SEC.API_PASS
                     }
               }
 //console.log = function() {}
