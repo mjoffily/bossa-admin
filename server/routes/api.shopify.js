@@ -10,7 +10,6 @@ var constants = require('./api.constants');
 const SEC = require('../secure/credentials')
 
 
-//const API = 'https://angular2test-mjoffily.c9users.io:8080';
 const BASE_URL = 'https://bossa-online.myshopify.com/admin';
 const API_PRODUCT_COUNT = BASE_URL + '/products/count.json';
 const API_PRODUCTS = BASE_URL + '/products.json?limit=250&fields=id,product_type,tags,title,price,created_at,updated_at,image,variants';

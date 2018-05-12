@@ -2,6 +2,7 @@
 data/
 node_modules/
 secure/
+dist/
 # Logs
 logs
 *.log
