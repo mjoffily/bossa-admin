@@ -1,41 +1,14 @@
 var Promise = require('bluebird');
-var MongoDB = require('mongodb');
+var dbc = require('./db.helper');
+var login = require('../login/check-user');
 var constants = require('./api.constants')
-var helper = require('./api.helper')
-var MongoClient = MongoDB.MongoClient;
-var Collection = MongoDB.Collection;
-const ObjectId = MongoDB.ObjectID;
 
-Promise.promisifyAll(MongoDB);
-Promise.promisifyAll(Collection.prototype);
-Promise.promisifyAll(MongoClient);
-
-const PRODUCTS = "products";
-const ORDERS = "orders";
-const PURCHASE_ORDERS = "purchase_orders";
-const COUNTERS = "counters";
-const REQUESTS = "requests";
-const LAST_UPDATE = "lastupdate";
-const DBNAME = "bossa";
-const COGS = [{dateFrom: new Date("2000-01-01"), dateTo: new Date("9999-01-01") ,costSourceCurrency: 0.00, cost: 0.00, handlingCost: 0.00, exchangeRate: 0.00}];
-
-var myDb;
-
-
-function connect() {
-  return new Promise(function (resolve, reject) {
-    if (myDb === undefined) {
-      MongoClient.connectAsync('mongodb://127.0.0.1:27017').then(function(client) {
-        myDb = client.db(DBNAME);
-        resolve(myDb);
-      })
-      .catch(function(err) {
-        reject(err);
-      });  
-    } else {
-      resolve(myDb);
-    }
-  });
+function pwd(userid, plainTextPassword) {
+    return new Promise((resolve, reject) => {
+        login.checkPassword(userid, plainTextPassword)
+        .then( (res) => resolve(res) )
+        .catch( (res) => resolve(res) )
+    })
 }
 
 function putLastUpdate(id, type, lastUpdate) {
@@ -43,9 +16,9 @@ function putLastUpdate(id, type, lastUpdate) {
      console.log("[putLastUpdate] - START");
      console.log("[putLastUpdate] lastUpdate: " + lastUpdate);
     
-     connect()
+     dbc.connect()
      .then(function(db) {
-        db.collection(LAST_UPDATE).updateAsync({_id: id}, {_id: id, last_refresh: lastUpdate, type: type, updated_at: new Date()}, {upsert: true})
+        db.collection(dbc.LAST_UPDATE).updateAsync({_id: id}, {_id: id, last_refresh: lastUpdate, type: type, updated_at: new Date()}, {upsert: true})
         .then(function() {
           console.log("[putLastUpdate] - END (ok)");
           resolve("ok");
@@ -68,11 +41,11 @@ function getNextSequenceValue(sequenceName, id) {
            console.log("[getNextSequenceValue] - ID %d", id);
            resolve(id);
        } else {
-        connect()
+        dbc.connect()
              .then(function(db) {
-                db.collection(COUNTERS).updateAsync({_id: sequenceName}, {$inc:{sequence_value:1}}, {upsert: true})
+                db.collection(dbc.COUNTERS).updateAsync({_id: sequenceName}, {$inc:{sequence_value:1}}, {upsert: true})
                 .then( () => {
-                    db.collection(COUNTERS).find({_id: sequenceName}).toArrayAsync()
+                    db.collection(dbc.COUNTERS).find({_id: sequenceName}).toArrayAsync()
                     .then( (sequence) => {
                         const s = String("0000000" + sequence[0].sequence_value).slice(-7); // returns 0000123
                         console.log("[getNextSequenceValue] - sequence %s", s);
@@ -97,14 +70,14 @@ function savePurchaseOrder(order) {
     
      getNextSequenceValue('purchase-order-id', order._id)
      .then( (id) => {
-         connect()
+         dbc.connect()
          .then(function(db) {
             const query = { _id: id };
             order._id = id;
             console.log('This is the query %s', JSON.stringify(query, null, 4));
-            db.collection(PURCHASE_ORDERS).updateAsync(query, order, {upsert: true})
+            db.collection(dbc.PURCHASE_ORDERS).updateAsync(query, order, {upsert: true})
             .then( () => {
-                db.collection(PURCHASE_ORDERS).find({}, {}).toArrayAsync()
+                db.collection(dbc.PURCHASE_ORDERS).find({}, {}).toArrayAsync()
                     .then( (items) => {
                          if (items && items[0])  {
                             console.log(JSON.stringify(items));
@@ -136,10 +109,10 @@ function savePurchaseOrder(order) {
 function getLastUpdate(id) {
     return new Promise(function (resolve, reject) {
         console.log("[getLastUpdate] - START - ID: " + id);
-        connect()
+        dbc.connect()
         .then(function(db) {
             if (!id) {
-                db.collection(LAST_UPDATE).find({}, {}).toArrayAsync()
+                db.collection(dbc.LAST_UPDATE).find({}, {}).toArrayAsync()
                 .then(function(items) {
                      if (items)  {
                         console.log("[getLastUpdate] - END (ok)");
@@ -154,7 +127,7 @@ function getLastUpdate(id) {
                   reject(err);
                 })
             } else {
-                db.collection(LAST_UPDATE).find({_id: id}, {}).toArrayAsync()
+                db.collection(dbc.LAST_UPDATE).find({_id: id}, {}).toArrayAsync()
                 .then(function(items) {
                      if (items && items[0])  {
                         console.log(JSON.stringify(items[0]));
@@ -184,9 +157,9 @@ function putProduct(product) {
      return new Promise(function (resolve, reject) {
          console.log("[putProduct] - START");
          console.log("[putProduct] Shopify ID: " + product.id);
-         connect()
+         dbc.connect()
          .then(db => {
-             db.collection(PRODUCTS).find({"product.id": product.id}, {}).toArrayAsync()
+             db.collection(dbc.PRODUCTS).find({"product.id": product.id}, {}).toArrayAsync()
              .then(items => {
                  if (items && items[0]) {
                      // loop through variants in new product document
@@ -199,7 +172,7 @@ function putProduct(product) {
                                  if (oldVariant.cogs) {
                                      variant.cogs = oldVariant.cogs;
                                  } else {
-                                     variant.cogs = COGS;
+                                     variant.cogs = db.COGS;
                                  }
                                  break;
                              }
@@ -207,10 +180,10 @@ function putProduct(product) {
                      }
                  } else { // this is a new product
                     for(var i = 0; i < product.variants.length; i++) {
-                         product.variants[i].cogs = COGS;
+                         product.variants[i].cogs = db.COGS;
                     }
                  }
-                 db.collection(PRODUCTS).updateAsync({id: product.id}, {$set: {product: product}} , {upsert: true})
+                 db.collection(dbc.PRODUCTS).updateAsync({id: product.id}, {$set: {product: product}} , {upsert: true})
                  .then(result => {
                      resolve(result);
                  })
@@ -229,14 +202,14 @@ function putCOGS(obj) {
      return new Promise(function (resolve, reject) {
          console.log("[putCOGS] - START");
          console.log("[putCOGS] Product ID: [%s] variant [%s] sku [%s] cogs [%o] ", obj.product_id, obj.variant, obj.sku, obj.cogs);
-         connect()
+         dbc.connect()
          .then(function(db) {
              for (var i=0; i<obj.cogs.length; i++) {
                 obj.cogs[i].dateFrom = new Date(obj.cogs[i].dateFrom);
                 obj.cogs[i].dateTo = new Date(obj.cogs[i].dateTo);
              }
             
-            db.collection(PRODUCTS).updateAsync({id: obj.product_id, "product.variants.id": obj.variant, "product.variants.sku": obj.sku }, {$set: {"product.variants.$.cogs": obj.cogs}})
+            db.collection(dbc.PRODUCTS).updateAsync({id: obj.product_id, "product.variants.id": obj.variant, "product.variants.sku": obj.sku }, {$set: {"product.variants.$.cogs": obj.cogs}})
             .then(data => {
                 console.log("This is the data: %o", data.result);
                 //console.log(" IS n === 1 %s [%s]", (data.result.n === 1), data.result.n);
@@ -258,7 +231,7 @@ function putOrder(order) {
          calcProfit(order)
          .then(updatedOrder => {
            // console.log("This is the updatedOrder: " + JSON.stringify(updatedOrder));
-            connect()
+            dbc.connect()
             .then(db => {
                 // make sure the created_at field is saved as a mongodb date
                 updatedOrder.created_at = new Date(updatedOrder.created_at);
@@ -271,7 +244,7 @@ function putOrder(order) {
                 updatedOrder.total_line_items_price = parseFloat(updatedOrder.total_line_items_price);
                 updatedOrder.total_price_usd = parseFloat(updatedOrder.total_price_usd);
                 
-                db.collection(ORDERS).updateAsync({id: updatedOrder.id}, {$set: {order: updatedOrder}} , {upsert: true})
+                db.collection(dbc.ORDERS).updateAsync({id: updatedOrder.id}, {$set: {order: updatedOrder}} , {upsert: true})
                 .then(data => {
                     //console.log("This is the data: " + JSON.stringify(data));
                     resolve(data);
@@ -297,10 +270,9 @@ function putOrder(order) {
 function getCOGSForVariant(orderId, productId, variantId, orderDate, lineItem) { 
     return new Promise(function (resolve, reject) {
         console.log("[getCOGSForVariant] - START - Order [%s] - Product [%s] - Variant [%s]", orderId, productId, variantId);
-        connect()
+        dbc.connect()
         .then(function(db) {
-            //db.collection(PRODUCTS).find({id: productId}, {"product.variants":1, "product.image.src":1}).toArrayAsync()
-             db.collection(PRODUCTS).aggregateAsync([
+             db.collection(dbc.PRODUCTS).aggregateAsync([
               {$unwind: "$product.variants"}
              ,{$project: {_id: 0, product_id:"$product.id",  image: "$product.image.src", variant: "$product.variants"}}
              ,{$match: { product_id: productId, "variant.id": {$eq: variantId}}}
@@ -364,10 +336,10 @@ cache = null; // Enable garbage collection
 function getPurchaseOrders() { 
     return new Promise(function (resolve, reject) {
         console.log("[getPurchaseOrders] - START");
-        connect()
+        dbc.connect()
         .then(function(db) {
             //db.collection(PRODUCTS).find({id: productId}, {"product.variants":1, "product.image.src":1}).toArrayAsync()
-             db.collection(PURCHASE_ORDERS).aggregateAsync([
+             db.collection(dbc.PURCHASE_ORDERS).aggregateAsync([
              {$project: {_id: 1, total_order_cost: 1, created_date: 1, updated_date: 1, number_of_items: {$size: "$items"}}}
              ])
             .then(cursor => {
@@ -388,7 +360,7 @@ function getPurchaseOrders() {
             });   
         })
         .catch(function(err) {
-            console.log("[getPurchaseOrders] - ERROR 3");
+            console.log("[getPurchaseOrders] - ERROR 3 %s", JSON.stringify(err, null, 4));
             reject(err);
         });             
     });
@@ -397,10 +369,10 @@ function getPurchaseOrders() {
 function getPurchaseOrder(id) { 
     return new Promise(function (resolve, reject) {
         console.log("[getPurchaseOrder] - START - ID %s", id );
-        connect()
+        dbc.connect()
         .then(function(db) {
             //db.collection(PRODUCTS).find({id: productId}, {"product.variants":1, "product.image.src":1}).toArrayAsync()
-             db.collection(PURCHASE_ORDERS).find({_id: id}).toArrayAsync()
+             db.collection(dbc.PURCHASE_ORDERS).find({_id: id}).toArrayAsync()
             .then( (po) => {
                 console.log("[getPurchaseOrder] - END");
                 resolve(po[0]);
@@ -541,9 +513,9 @@ function calcProfit(order) {
 function getProductsLocal() {
     return new Promise(function (resolve, reject) {
         console.log("[getProductsLocal] - START");
-        connect()
+        dbc.connect()
         .then(function(db) {
-            db.collection(PRODUCTS).find({}, {}).toArrayAsync()
+            db.collection(dbc.PRODUCTS).find({}, {}).toArrayAsync()
                 .then(function(products) {
                      if (products)  {
                         console.log("[getProductsLocal] - END (ok)");
@@ -568,10 +540,10 @@ function getProductsLocal() {
 function getProductsLocalMin() {
     return new Promise(function (resolve, reject) {
         console.log("[getProductsLocalMin] - START");
-        connect()
+        dbc.connect()
         .then(function(db) {
             var mydate = new Date()
-            db.collection(PRODUCTS).aggregateAsync([  {$unwind: "$product.variants"}
+            db.collection(dbc.PRODUCTS).aggregateAsync([  {$unwind: "$product.variants"}
                                                      ,{$project: {_id: 0, product_id:"$product.id",  variant: "$product.variants", photo: "$product.image.src"}}
                                                      ,{$unwind: "$variant.cogs"}
                                                      ,{$match: { $and: [ {"variant.cogs.dateFrom": {$lte: mydate}}, {"variant.cogs.dateTo": {$gte: mydate}} ]}}
@@ -603,9 +575,9 @@ function getProductsLocalMin() {
 function getOrdersLocal() {
     return new Promise(function (resolve, reject) {
         console.log("[getOrdersLocal] - START");
-        connect()
+        dbc.connect()
         .then(function(db) {
-            db.collection(ORDERS).find({}, {}).toArrayAsync()
+            db.collection(dbc.ORDERS).find({}, {}).toArrayAsync()
                 .then(function(orders) {
                      if (orders)  {
                         console.log("[getOrdersLocal] - END (ok)");
@@ -630,9 +602,9 @@ function getOrdersLocal() {
 function getAnalytics(type) { 
     return new Promise(function (resolve, reject) {
         console.log("[getAnalytics] - START - Type [%s]", type);
-        connect()
+        dbc.connect()
         .then(function(db) {
-            db.collection(ORDERS).aggregateAsync([
+            db.collection(dbc.ORDERS).aggregateAsync([
               {$group : { _id: {year : { $year : "$order.created_at" }, month: {$month: "$order.created_at"}}, total_revenue: {$sum: "$order.profit_summary.revenue"}, total_profit: {$sum: "$order.profit_summary.profit"} }}
             , { $sort: { "_id.year": 1, "_id.month": 1} }
             , {$project: {year: {$substr: ["$_id.year", 0, -1]}, month: {$substr: ["$_id.month", 0, -1]}, total_revenue: 1, total_profit: 1}}
@@ -664,9 +636,9 @@ function getAnalytics(type) {
 function getAnalyticsByProduct(type) { 
     return new Promise(function (resolve, reject) {
         console.log("[getAnalyticsByProduct] - START - Type [%s]", type);
-        connect()
+        dbc.connect()
         .then(function(db) {
-            db.collection(ORDERS).aggregateAsync([
+            db.collection(dbc.ORDERS).aggregateAsync([
                 
               {$unwind: "$order.line_items"}
              ,{$group : { _id: {year : { $year : "$order.created_at" }, month: {$month: "$order.created_at"}, sku: "$order.line_items.sku", variant_id: "$order.line_items.variant_id"}, count: {$sum: "$order.line_items.quantity"} }}
@@ -697,7 +669,8 @@ function getAnalyticsByProduct(type) {
     });
 }
 
-module.exports = {connect: connect
+module.exports = {
+  pwd: pwd
 , getLastUpdate: getLastUpdate
 , putLastUpdate: putLastUpdate
 , putProduct: putProduct

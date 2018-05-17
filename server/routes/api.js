@@ -12,6 +12,30 @@ router.get('/', (req, res) => {
   res.send('api is up and running!');
 });
 
+router.post('/login', (req, res) => {
+  console.log("[login] - START");
+  console.log("this is req: %s", JSON.stringify(req.body));
+  const { userid, password } = req.body;
+  if (! userid) {
+    res.status(400).json('User is required');
+    return;
+  }
+  
+  if (! password) {
+    res.status(400).json('Password is required');
+    return;
+  }
+  conn.pwd(userid, password)
+  .then(match => {
+    console.log('Password matches {%s}', match);
+    match ? res.status(200).json({status: true, error_msg: ''}) : res.status(200).json({status: false, error_msg: 'invalid userid or password'});
+  })
+  .catch(err => {
+    res.status(500).json(err.message);
+  });  
+})
+
+
 router.get('/products-local', (req, res) => {
   conn.getProductsLocal()
   .then(data => {

@@ -7,10 +7,11 @@
   "author": "Mostafa Eweda <mo.eweda@gmail.com>",
   "dependencies": {
     "async": "~0.2.8",
-    "express": "~4.13.4",
     "axios": "~0.18.0",
-    "mongodb": "^3.0.2",
+    "bcrypt": "^2.0.1",
     "bluebird": "~3.5.1",
+    "express": "~4.13.4",
+    "mongodb": "^3.0.2",
     "socket.io": "~0.9.14"
   }
 }

@@ -6,8 +6,9 @@ import { PAGES } from './Update';
 
 const CUSTOM_EVENT = 'asynchCustomEvent';
 
-function app(initModel2, update, view, node) {
-  let initValues = initModel2();
+function app(initModel, update, view, node) {
+  console.log('URL: %s', document.URL);
+  let initValues = initModel(document.URL);
   let model = initValues[0];
   let commands = initValues[1];
   let asynchMsgs = null;

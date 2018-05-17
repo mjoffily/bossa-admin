@@ -45,9 +45,11 @@ module.exports = {
       },
     ],
   },
-  plugins: [new webpack.DefinePlugin({ 'process.env.NODE_ENV': JSON.stringify('production') }),
+  plugins: [
+    //new webpack.DefinePlugin({ 'process.env.NODE_ENV': JSON.stringify('production') }),
             new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/),
-            new BundleAnalyzerPlugin(bundleAnalyzerParms)],
+  //          new BundleAnalyzerPlugin(bundleAnalyzerParms)
+  ],
 // optimization: {
 //         splitChunks: {
 //             cacheGroups: {
