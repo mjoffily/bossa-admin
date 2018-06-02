@@ -1,0 +1,2 @@
+{ "_id" : 1, "last_refresh" : "2018-03-23", "type" : "PRODUCTS", "updated_at" : { "$date" : "2018-04-01T11:04:40.206+0000" } }
+{ "_id" : 2, "last_refresh" : "2015-11-23", "type" : "ORDERS", "updated_at" : { "$date" : "2018-03-20T20:34:54.508+0000" } }

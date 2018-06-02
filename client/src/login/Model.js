@@ -2,7 +2,7 @@ export function initModel() {
     return [{
         userid: '',
         password: '',
-        redirect_to: '',
+        redirect_to: {},
         block: false,
     }, null];
 }

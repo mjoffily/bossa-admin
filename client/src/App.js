@@ -16,7 +16,10 @@ function app(initModel, update, view, node) {
   let currentView = view(dispatch, model);
   let rootNode = createElement(currentView);
   node.appendChild(rootNode);
-  node.addEventListener(CUSTOM_EVENT, e => dispatch(e.detail.msg));
+  node.addEventListener(CUSTOM_EVENT, e => {
+      console.log('Asynch Handler: %s', JSON.stringify(e.detail.msg))
+      dispatch(e.detail.msg)
+    });
   
   function dispatch(msg) {
     const result = update(msg, model, dispatchAsynch);
@@ -38,6 +41,7 @@ function app(initModel, update, view, node) {
   }
   
   function dispatchAsynch(msg) {
+    console.log('Dispatch Asynch: %s', JSON.stringify(msg, null, 4))
     const event = new CustomEvent(CUSTOM_EVENT, {
       bubbles: false,
       detail: { msg }
@@ -63,17 +67,26 @@ function httpEffects(dispatch, dispatchAsynch, commands) {
 }
 
 const executeCmd = R.curry( (dispatch, dispatchAsynch, command) => {
-    const { request, successMsg, errorMsg, httpStartMsg } = command;
-    var blocking = true;
+    // originalMsg is the message which the handler produced the command being executed here.
+    // That message is there so we can replay it in case the HTTP request fails with error 403 (not authenticated)
+    // In that case, the handler of the error (errorMsg) is triggered, and accepts the originalMsg as a parameter
+    // It then redirects to the login page, informing it that it should replay this original message 
+    const { request, successMsg, errorMsg, httpStartMsg, originalMsg } = command;
     if (httpStartMsg) {
       dispatchAsynch(httpStartMsg);
+    }
+    // get the token from session storage to send to the request
+    if (request.headers) {
+      request.headers['x-access-token'] = window.sessionStorage.token
+    } else {
+      request.headers = { 'x-access-token': window.sessionStorage.token } 
     }
     axios(request)
     .then(response => {
       dispatch(successMsg(response))
     })
     .catch(error => {
-      dispatch(errorMsg(error))
+      dispatch(errorMsg(error, originalMsg))
     });
 })
 

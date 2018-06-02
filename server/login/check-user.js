@@ -18,17 +18,21 @@ function checkPassword(userid, plainTextPassword) {
                 bcrypt.compare(plainTextPassword, password)
                 .then( (res) => {
                     console.log("Result %s", res);
-                    resolve(res);
+                    if (res) {
+                        resolve(true);
+                    } else {
+                        reject({status: 'check complete', error_msg: 'invalid userid and password combination'});
+                    }
                 })
                 .catch( (error) => {
                     console.error("ERROR: %s", error);
-                    reject(false);
+                    reject(error);
                 })
 
             })
             .catch( (error) => {
-                console.log("ERROR updating user %s %s ", userid, JSON.stringify(error, null, 4));
-                reject(false);
+                console.log("User Not Found %s %s ", userid, JSON.stringify(error, null, 4));
+                reject({status: 'check complete', error_msg: 'invalid userid and password combination'});
             })
         })
         .catch( (error) => {

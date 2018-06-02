@@ -6,10 +6,18 @@ var conn = require('./api.connect');
 var shopify = require('./api.shopify');
 var helper = require('./api.helper');
 var constants = require('./api.constants');
+var auth = require('../login/jwt');
+var login = require('../login/check-user');
+
 
 
 router.get('/', (req, res) => {
   res.send('api is up and running!');
+});
+
+router.get('/test', auth.verifyToken, (req, res) => {
+  
+  res.send({ auth: true, error_msg: '' });
 });
 
 router.post('/login', (req, res) => {
@@ -17,26 +25,32 @@ router.post('/login', (req, res) => {
   console.log("this is req: %s", JSON.stringify(req.body));
   const { userid, password } = req.body;
   if (! userid) {
-    res.status(400).json('User is required');
+    res.status(400).json({error: {msg:'User is required'}});
     return;
   }
   
   if (! password) {
-    res.status(400).json('Password is required');
+    res.status(400).json({error: {msg:'Password is required'}});
     return;
   }
-  conn.pwd(userid, password)
-  .then(match => {
-    console.log('Password matches {%s}', match);
-    match ? res.status(200).json({status: true, error_msg: ''}) : res.status(200).json({status: false, error_msg: 'invalid userid or password'});
+  login.checkPassword(userid, password)
+  .then( (match) => {
+    auth.encodeToken({ data: { userid } })
+    .then( (token) => {res.status(200).json({data: {status: true, error_msg: '', token}})} )
+    .catch( (err) => {res.status(500).json({data: {status: false, error_msg: 'internal system error'}})})
   })
   .catch(err => {
-    res.status(500).json(err.message);
+    if (err.status) {
+      const { error_msg } = err;
+      res.status(200).json({data: { status: false, error_msg }});
+    } else {
+      res.status(500).json({data: { status: false, error_msg: 'internal system error' }});
+    }
   });  
 })
 
 
-router.get('/products-local', (req, res) => {
+router.get('/products-local', auth.verifyToken, (req, res) => {
   conn.getProductsLocal()
   .then(data => {
       res.status(200).json(data);
@@ -46,7 +60,7 @@ router.get('/products-local', (req, res) => {
   });
 });
 
-router.get('/products-minimum', (req, res) => {
+router.get('/products-minimum', auth.verifyToken, (req, res) => {
   conn.getProductsLocalMin()
   .then(data => {
       res.status(200).json(data);
@@ -56,7 +70,7 @@ router.get('/products-minimum', (req, res) => {
   });
 });
 
-router.get('/orders-local', (req, res) => {
+router.get('/orders-local', auth.verifyToken, (req, res) => {
   conn.getOrdersLocal()
   .then(data => {
       res.status(200).json(data);
@@ -66,7 +80,7 @@ router.get('/orders-local', (req, res) => {
   });
 });
 
-router.get('/products-to-be-synched', (req, res) => {
+router.get('/products-to-be-synched', auth.verifyToken, (req, res) => {
   console.log("[route products-to-be-synched] - START");
   shopify.getProductsToSynch()
   .then(data => {
@@ -79,7 +93,7 @@ router.get('/products-to-be-synched', (req, res) => {
   });
 });
 
-router.get('/orders-to-be-synched', (req, res) => {
+router.get('/orders-to-be-synched', auth.verifyToken, (req, res) => {
   console.log("[route orders-to-be-synched] - START");
   shopify.getOrdersToSynch()
   .then(data => {
@@ -92,7 +106,7 @@ router.get('/orders-to-be-synched', (req, res) => {
   });
 });
 
-router.get('/synch-products', (req, res) => {
+router.get('/synch-products', auth.verifyToken, (req, res) => {
   shopify.getProductsToSynch().then(products => {
     var list = [];
     for (var i=0, n=products.length; i < n; i++ ) {
@@ -113,7 +127,7 @@ router.get('/synch-products', (req, res) => {
   });
 });
 
-router.put('/cogs', (req, res) => {
+router.put('/cogs', auth.verifyToken, (req, res) => {
   console.log("[route cogs] - START");
   console.log("this is req: %s", JSON.stringify(req.body));
   //var data = JSON.parse(req.body);
@@ -131,7 +145,7 @@ router.put('/cogs', (req, res) => {
   });  
 })
 
-router.get('/purchase-orders', (req, res) => {
+router.get('/purchase-orders', auth.verifyToken, (req, res) => {
   console.log("[GET purchase-orders] - START");
   conn.getPurchaseOrders()
   .then(data => {
@@ -143,7 +157,7 @@ router.get('/purchase-orders', (req, res) => {
   });  
 })
 
-router.get('/purchase-order/:id', (req, res) => {
+router.get('/purchase-order/:id', auth.verifyToken, (req, res) => {
   console.log("[GET purchase-order] - START");
 
   if (!req.params.id) {
@@ -162,7 +176,7 @@ router.get('/purchase-order/:id', (req, res) => {
 })
 
 
-router.post('/purchase-order', (req, res) => {
+router.post('/purchase-order', auth.verifyToken, (req, res) => {
   console.log("[purchase-order] - START");
   console.log("this is req: %s", JSON.stringify(req.body));
   if (req.body._id) {
@@ -180,7 +194,7 @@ router.post('/purchase-order', (req, res) => {
   }
 })
 
-router.put('/purchase-order', (req, res) => {
+router.put('/purchase-order', auth.verifyToken, (req, res) => {
   console.log("[purchase-order] - START");
   console.log("this is req: %s", JSON.stringify(req.body));
   if (!req.body._id) {
@@ -199,7 +213,7 @@ router.put('/purchase-order', (req, res) => {
 })
 
 
-router.get('/synch-orders', (req, res) => {
+router.get('/synch-orders', auth.verifyToken, (req, res) => {
   shopify.getOrdersToSynch()
   .then(orders => {
       shopify.getOrderTransactions(orders)
@@ -232,7 +246,7 @@ router.get('/synch-orders', (req, res) => {
   });
 });
 
-router.get('/synch-order/:id', (req, res) => {
+router.get('/synch-order/:id', auth.verifyToken, (req, res) => {
   console.log("API /synch-order");
   console.log("Params: " + JSON.stringify(req.params.id));
   if (!req.params.id) {
@@ -261,7 +275,7 @@ router.get('/synch-order/:id', (req, res) => {
   });
 });
 
-router.get('/synch-product/:id', (req, res) => {
+router.get('/synch-product/:id', auth.verifyToken, (req, res) => {
   console.log("API /synch-product");
   console.log("Params: " + JSON.stringify(req.params.id));
   if (!req.params.id) {
@@ -284,7 +298,7 @@ router.get('/synch-product/:id', (req, res) => {
   });
 });
 
-router.get('/analytics/:id', (req, res) => {
+router.get('/analytics/:id', auth.verifyToken, (req, res) => {
   console.log("API /analytics");
   console.log("Params: " + JSON.stringify(req.params.id));
   if (!req.params.id) {
@@ -300,7 +314,7 @@ router.get('/analytics/:id', (req, res) => {
   });
 });
 
-router.get('/analytics-products/:id', (req, res) => {
+router.get('/analytics-products/:id', auth.verifyToken, (req, res) => {
   console.log("API /analytics");
   console.log("Params: " + JSON.stringify(req.params.id));
   if (!req.params.id) {
@@ -316,7 +330,7 @@ router.get('/analytics-products/:id', (req, res) => {
   });
 });
 
-router.get('/lastupdate', (req, res) => {
+router.get('/lastupdate', auth.verifyToken, (req, res) => {
   conn.getLastUpdate()
   .then(data => {
     res.status(200).json(data);
@@ -326,7 +340,7 @@ router.get('/lastupdate', (req, res) => {
   });  
 });
 
-router.post('/products', (req, res) => {
+router.post('/products', auth.verifyToken, (req, res) => {
   console.log("this is req: " + JSON.stringify(req.body.products));
   const products = req.body.products;
   const totalProducts = products.length;
@@ -351,7 +365,7 @@ router.post('/products', (req, res) => {
    // res.status(200).json({total_products_submitted: totalProducts, total_products_processed: 0, shopify_products: shopifyProducts});
 })
 
-router.put('/last-product-update', (req, res) => {
+router.put('/last-product-update', auth.verifyToken, (req, res) => {
   console.log("this is req: " + JSON.stringify(req.body));
   conn.putLastUpdate(constants.PRODUCT_LAST_UPDATE_ID ,"PRODUCTS", req.body.last_update)
   .then(data => {
@@ -362,7 +376,7 @@ router.put('/last-product-update', (req, res) => {
   });  
 })
 
-router.put('/last-order-update', (req, res) => {
+router.put('/last-order-update', auth.verifyToken, (req, res) => {
   console.log("this is req: " + JSON.stringify(req.body));
   conn.putLastUpdate(constants.ORDER_LAST_UPDATE_ID ,"ORDERS", req.body.last_update)
   .then(data => {

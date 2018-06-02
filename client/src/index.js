@@ -1,4 +1,4 @@
-import initModel from './Model';
+import { initModel } from './Model';
 import { update } from './Update';
 import view from './View';
 import app from './App';

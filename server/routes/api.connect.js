@@ -1,15 +1,7 @@
 var Promise = require('bluebird');
 var dbc = require('./db.helper');
-var login = require('../login/check-user');
 var constants = require('./api.constants')
 
-function pwd(userid, plainTextPassword) {
-    return new Promise((resolve, reject) => {
-        login.checkPassword(userid, plainTextPassword)
-        .then( (res) => resolve(res) )
-        .catch( (res) => resolve(res) )
-    })
-}
 
 function putLastUpdate(id, type, lastUpdate) {
    return new Promise(function (resolve, reject) {
@@ -547,11 +539,13 @@ function getProductsLocalMin() {
                                                      ,{$project: {_id: 0, product_id:"$product.id",  variant: "$product.variants", photo: "$product.image.src"}}
                                                      ,{$unwind: "$variant.cogs"}
                                                      ,{$match: { $and: [ {"variant.cogs.dateFrom": {$lte: mydate}}, {"variant.cogs.dateTo": {$gte: mydate}} ]}}
-                                                     ,{$project: {product_id: 1, my_sku: "$variant.sku", price: "$variant.cogs.costSourceCurrency", photo: "$photo"}}]) 
+                                                     ,{$project: {product_id: 1, my_sku: "$variant.sku", price: "$variant.cogs.costSourceCurrency", photo: "$photo"}}
+                                                    ]) 
             .then( (cursor) => {
                 cursor.toArray()
                 .then( (products) => {
                      if (products)  {
+                         console.log("products: %s", JSON.stringify(products))
                         console.log("[getProductsLocalMin] - END (ok)");
                         resolve(products);
                      } else {
@@ -670,8 +664,7 @@ function getAnalyticsByProduct(type) {
 }
 
 module.exports = {
-  pwd: pwd
-, getLastUpdate: getLastUpdate
+  getLastUpdate: getLastUpdate
 , putLastUpdate: putLastUpdate
 , putProduct: putProduct
 , getAnalytics: getAnalytics
