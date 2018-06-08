@@ -40,5 +40,10 @@ const server = http.createServer(app);
  */
 server.listen(port, process.env.IP || "0.0.0.0", () => console.log(`APII running on localhost:${port}`));
 
+function stop() {
+  server.close();
+}
+
 module.exports = app;
+module.exports.stop = stop;
 
