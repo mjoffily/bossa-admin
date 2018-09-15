@@ -2,7 +2,8 @@ var Promise = require('bluebird');
 var dbc = require('./db.helper');
 var constants = require('./api.constants')
 var logger = require('../_logger').logger
-var R = require('ramda')
+const R = require('ramda')
+const moment = require('moment');
 
 
 function putLastUpdate(id, type, lastUpdate) {
@@ -151,51 +152,34 @@ function getLastUpdate(id) {
     });
 }
 
-function putProduct(product) {
-    return new Promise(function(resolve, reject) {
-        console.log("[putProduct] - START");
-        console.log("[putProduct] Shopify ID: " + product.id);
+function getProductById(id) {
+    return new Promise((resolve, reject) => {
         dbc.connect()
             .then(db => {
-                db.collection(dbc.PRODUCTS).find({ "product.id": product.id }, {}).toArrayAsync()
-                    .then(items => {
-                        if (items && items[0]) {
-                            // loop through variants in new product document
-                            for (var i = 0; i < product.variants.length; i++) {
-                                var variant = product.variants[i];
-                                // find the variant in the old version of the product, just retrieved from the database
-                                for (var j = 0; j < items[0].product.variants.length; j++) {
-                                    var oldVariant = items[0].product.variants[j];
-                                    if (oldVariant.id === variant.id) { // found a match
-                                        if (oldVariant.cogs) {
-                                            variant.cogs = oldVariant.cogs;
-                                        }
-                                        else {
-                                            variant.cogs = db.COGS;
-                                        }
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        else { // this is a new product
-                            for (var i = 0; i < product.variants.length; i++) {
-                                product.variants[i].cogs = db.COGS;
-                            }
-                        }
-                        db.collection(dbc.PRODUCTS).updateAsync({ id: product.id }, { $set: { product: product } }, { upsert: true })
-                            .then(result => {
-                                resolve(result);
-                            })
-                            .catch(err => {
-                                reject(err);
-                            })
+                db.collection(dbc.PRODUCTS).findOne({ "id": id }, {})
+                    .then((result) => {
+                        resolve(result)
                     })
-                    .catch(err => {
-                        reject(err);
-                    });
-            });
-    });
+                    .catch((error) => {
+                        reject(error)
+                    })
+            })
+    })
+}
+
+function getCOGSById(product_id, variant_id) {
+    return new Promise((resolve, reject) => {
+        dbc.connect()
+            .then(db => {
+                db.collection(dbc.COGS).findOne({ product_id, variant_id }, {})
+                    .then((result) => {
+                        resolve(result)
+                    })
+                    .catch((error) => {
+                        reject(error)
+                    })
+            })
+    })
 }
 
 function putCOGS(obj) {
@@ -562,8 +546,8 @@ function getProductsLocalMin() {
                         var productsPromises = R.map((c) => {
                             return c.toArray()
                                 .then((products) => {
-                                    logger.debug({products_length: products.length})
-                                    logger.debug({Returning_these_products: products})
+                                    logger.debug({ products_length: products.length })
+                                    logger.debug({ Returning_these_products: products })
                                     return products
                                 })
                                 .catch((error) => {
@@ -572,15 +556,15 @@ function getProductsLocalMin() {
                                 })
                         }, cursor)
                         Promise.all(productsPromises)
-                        .then( (results) => {
-                            // bring result from both queries together
-                            const r = R.concat(results[0], results[1]);
-                            resolve(r)
-                        })
-                        .catch( (err) => {
-                          logger.error({msg: "[getProductsLocalMin] - ENdD (error 2)"});
-                          reject(err);
-                        })
+                            .then((results) => {
+                                // bring result from both queries together
+                                const r = R.concat(results[0], results[1]);
+                                resolve(r)
+                            })
+                            .catch((err) => {
+                                logger.error({ msg: "[getProductsLocalMin] - ENdD (error 2)" });
+                                reject(err);
+                            })
                     })
                     .catch(function(err) {
                         logger.error("[getProductsLocal] - END (error 3)");
@@ -593,7 +577,7 @@ function getProductsLocalMin() {
             });
 
     })
-    
+
 }
 
 function getOrdersLocal() {
@@ -687,19 +671,146 @@ function getAnalyticsByProduct(type) {
     });
 }
 
+
+// given 2 values. If the new value is less than zero, return the initial value, otherwise return the new value
+function negativeToValue(initialVal, newVal) {
+    return newVal < 0 ? initialVal : newVal
+}
+
+const negativeToValueCurried = R.curry(negativeToValue);
+
+function insertCOGSRecord(cogsList, cogsToInsert) {
+    const idx = R.pipe(
+        R.findIndex((cogs) => (cogs.date_from >= cogsToInsert.date_from)),
+        negativeToValueCurried(cogsList.length)
+    )(cogsList)
+    const mergedList = R.insert(idx, cogsToInsert, cogsList)
+    return R.mapAccumRight(setDateAsPrevious, -1, mergedList)[0]
+
+}
+
+function setDateAsPrevious(obj, accum) {
+    const date_to = (accum != -1) ? accum : obj.date_to
+    // return a tupple with the accummulator (containing the date_from to be used in the next iteration) and the modified COGS object
+    const newAccum = moment(obj.date_from).subtract(1, 'days').toDate() // save the date_from of the element in the accummulator to be used with the next element
+    const newObj = { ...obj, date_to }
+    return [newAccum, newObj]
+}
+
+function prepareCOGSFromPurchaseOrder(po) {
+    const { cost_in_real, cost_in_aud, exchange_rate, po_id } = po
+    const date_from = moment().toDate()
+    const date_to = moment(constants.END_OF_TIMES).toDate()
+    const handling_cost = constants.HANDLING_COST
+    return { date_from, date_to, cost_in_real, cost_in_aud, handling_cost, exchange_rate, po_id }
+
+}
+
+function updateCOGSToVariant(currentCOGS, cogsToAdd) {
+
+    const newCOGS = insertCOGSRecord(currentCOGS.cogs, cogsToAdd)
+    return { ...currentCOGS, cogs: newCOGS }
+
+}
+
+function addCOGSToVariant(product_id, variant_id, cogsEntry) {
+    return { product_id, variant_id, cogs: [cogsEntry] }
+}
+
+function handleCOGS(product_id, variant_id, po) {
+    return new Promise((resolve, reject) => {
+        const cogsToAdd = prepareCOGSFromPurchaseOrder(po)
+        getCOGSById(product_id, variant_id)
+            .then((exitingCOGS) => {
+                const updatedCOGS = R.isNil(exitingCOGS) ? addCOGSToVariant(product_id, variant_id, cogsToAdd) : updateCOGSToVariant(exitingCOGS, cogsToAdd)
+                upsertCOGS(updatedCOGS)
+                    .then((res) => {
+                        resolve()
+                    })
+                    .catch((err) => {
+                        reject(err)
+                    })
+            })
+            .catch((err) => { reject(err) })
+    })
+}
+
+function cogsWrapper(shopify_products, product, index) {
+    console.log('THis is the shopify product: ', JSON.stringify(shopify_products, null, 4))
+    const product_id = R.isNil(product.product_id) ? shopify_products[index].data.product.id : product.product_id
+    const variant_id = R.isNil(product.variant_id) ? shopify_products[index].data.product.variants[0].id : product.variant_id
+    return handleCOGS(product_id, variant_id, product)
+}
+
+const cogsWrapperCurried = R.curry(cogsWrapper);
+
+function upsertProduct(product) {
+    return new Promise((resolve, reject) => {
+        console.log("[upsertProduct] - START");
+
+        dbc.connect()
+            .then((db) => {
+                db.collection(dbc.PRODUCTS).replaceOne({ id: product.id }, product, { upsert: true })
+                    .then(() => {
+                        console.log("[upsertProduct] - END (ok)");
+                        resolve("ok");
+                    })
+                    .catch((err) => {
+                        console.log("[upsertProduct] - END (error)");
+                        reject(err);
+                    })
+            })
+            .catch(function(err) {
+                reject(err);
+            })
+    });
+}
+
+function upsertCOGS(cogs) {
+    return new Promise((resolve, reject) => {
+        console.log("[upsertCOGS] - START");
+        dbc.connect()
+            .then((db) => {
+                db.collection(dbc.COGS).replaceOne({ product_id: cogs.product_id, variant_id: cogs.variant_id }, cogs, { upsert: true })
+                    .then(() => {
+                        console.log("[upsertCOGS] - END (ok)");
+                        resolve("ok");
+                    })
+                    .catch((err) => {
+                        console.log("[upsertCOGS] - END (error)");
+                        reject(err);
+                    })
+            })
+            .catch(function(err) {
+                reject(err);
+            })
+    });
+}
+
+
 module.exports = {
-    getLastUpdate: getLastUpdate,
-    putLastUpdate: putLastUpdate,
-    putProduct: putProduct,
-    getAnalytics: getAnalytics,
-    getAnalyticsByProduct: getAnalyticsByProduct,
-    putOrder: putOrder,
-    getOrdersLocal: getOrdersLocal,
-    getCOGSForVariant: getCOGSForVariant,
-    putCOGS: putCOGS,
-    getProductsLocal: getProductsLocal,
-    getProductsLocalMin: getProductsLocalMin,
-    savePurchaseOrder: savePurchaseOrder,
-    getPurchaseOrders: getPurchaseOrders,
-    getPurchaseOrder: getPurchaseOrder
+    getLastUpdate,
+    putLastUpdate,
+    putProduct,
+    getAnalytics,
+    getAnalyticsByProduct,
+    putOrder,
+    getOrdersLocal,
+    getCOGSForVariant,
+    putCOGS,
+    getProductsLocal,
+    getProductsLocalMin,
+    savePurchaseOrder,
+    getPurchaseOrders,
+    getPurchaseOrder,
+    getProductById,
+    getCOGSById,
+    insertCOGSRecord,
+    setDateAsPrevious,
+    prepareCOGSFromPurchaseOrder,
+    upsertProduct,
+    upsertCOGS,
+    addCOGSToVariant,
+    handleCOGS,
+    cogsWrapperCurried
 };

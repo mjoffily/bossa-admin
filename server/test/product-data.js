@@ -181,13 +181,9 @@ const products_2 = [
     }
 ]
 
-// Here we have 2 products. Both have cogs. Used to test case when query returning items without COGS has zero entries
 const today = moment().subtract(5, 'days').startOf('day');
 const nearFuture = today.clone().add(4, 'days').toDate()
 const specificDate = moment("2000-03-27").toDate()
-console.log(today.toDate())
-console.log(nearFuture)
-console.log(specificDate)
 const products_3 = [    
     {
         "_id": "5b0f094ae7e7dafc7d2e576e",
@@ -244,4 +240,23 @@ const products_3 = [
     }
 ]
 
-module.exports = {products_1, products_2, products_3}
+const product_4 =     
+    {
+        "id": 11362986452,
+        "created_at": "2017-08-07T19:11:58+10:00",
+        "updated_at": "2018-02-11T21:50:41+11:00",
+        "test_field": "initial value",
+        "variants": [
+            {
+                "id": 47830774036,
+                "product_id": 11362986452,
+                "price": "49.00",
+                "sku": "BA2127FO_g",
+                "created_at": "2017-08-07T19:11:58+10:00",
+                "updated_at": "2017-10-15T18:32:47+11:00",
+                "inventory_item_id": 36067322004,
+            }
+        ]
+    }
+
+module.exports = {products_1, products_2, products_3, product_4}

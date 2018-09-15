@@ -23,7 +23,7 @@ function printJson(obj) {
 }
 
 function countSuccess(accummulator, currentValue) {
-    if (currentValue.success) {
+    if (currentValue.status === 'success') {
         accummulator.success_count = accummulator.success_count + 1;
     } else {
         accummulator.failed_count = accummulator.failed_count + 1;

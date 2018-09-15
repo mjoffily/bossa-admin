@@ -19,7 +19,8 @@ const PURCHASE_ORDERS = "purchase_orders";
 const COUNTERS = "counters";
 const REQUESTS = "requests";
 const LAST_UPDATE = "lastupdate";
-const COGS = [{dateFrom: new Date("2000-01-01"), dateTo: new Date("9999-01-01") ,costSourceCurrency: 0.00, cost: 0.00, handlingCost: 0.00, exchangeRate: 0.00}];
+const COGS = "cogs"
+//const COGS = [{dateFrom: new Date("2000-01-01"), dateTo: new Date("9999-01-01") ,costSourceCurrency: 0.00, cost: 0.00, handlingCost: 0.00, exchangeRate: 0.00}];
 
 var myDb;
 var dbclient;
