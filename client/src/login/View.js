@@ -12,7 +12,8 @@ export function view(dispatch, model) {
   
   return div({ className: 'mw8 center' }, [
     div({ className: ''}, model.error_msg),
-    div({ className: ''}, [
+      div({ className: 'w-100 f2 pv2' }, ''),
+      div({ className: 'mt6 w-40 center'}, [
         div({ className: ''}, 'User id:'),
         div({ className: ''}, 
               input({ className: ''
@@ -35,7 +36,7 @@ export function view(dispatch, model) {
       
       ]),
    
-    , pre(JSON.stringify(model, null, 2)),
+ //   , pre(JSON.stringify(model, null, 2)),
   ]);
 }
 

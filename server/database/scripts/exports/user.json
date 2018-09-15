@@ -1,0 +1,2 @@
+{ "_id" : { "$oid" : "5af7689ff6328ed368aad8bc" }, "userid" : "mjoffily", "password" : "$2b$04$hikWsxhpB2Ek6zW9P6OTQOCRiNaSCkk2wWIs7qgysnOJk7FQeMLOW", "created_date" : { "$date" : "2018-05-12T22:46:49.705+0000" } }
+{ "_id" : { "$oid" : "5af7734ff6328ed368aad8bd" }, "userid" : "dani", "password" : "$2b$04$sSAhLziOdHHkAV04psQE9.Ck7KjnFvf9eRIlMUeUeaejUzoY/HI3m", "created_date" : { "$date" : "2018-05-12T23:05:51.080+0000" } }

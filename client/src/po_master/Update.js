@@ -1,6 +1,7 @@
 import * as R from 'ramda';
 import { PAGES, navigateToPageMsg } from '../Update'
 import { newPurchaseOrderMsg, retrievePurchaseOrderMsg } from '../po_detail/Update'
+import { redirectToMsg } from '../login/Update'
 import { baseURL } from '../lib/mycommons';
 
 
@@ -15,21 +16,22 @@ export const MSGS = {
 }
 
 function getPurchaseOrdersUrl() {
-  return `${baseURL}/purchase-orders`;
+    return `${baseURL}/purchase-orders`;
 }
 
 const httpStartMsg = {
     msg: MSGS.HTTP_START
 }
 
-export const fetchPurchaseOrdersCmd =  {
-              request: { method: 'get', url: getPurchaseOrdersUrl() },
-              successMsg: httpPurchaseOrdersFetchedMsg,
-              errorMsg: httpErrorFetchingPurchaseOrdersMsg,
-              httpStartMsg: httpStartMsg,
-            
-          }
-
+export function fetchPurchaseOrdersCmd(originalMsg) {
+    return {
+        request: { method: 'get', url: getPurchaseOrdersUrl() },
+        successMsg: httpPurchaseOrdersFetchedMsg,
+        errorMsg: httpErrorFetchingPurchaseOrdersMsg,
+        httpStartMsg: httpStartMsg,
+        originalMsg
+    }
+}
 
 export function newPOMsg() {
     return {
@@ -50,51 +52,62 @@ export function poSelectedMsg(id) {
     }
 }
 
-function httpErrorFetchingPurchaseOrdersMsg(error) {
-  return {
-    type: MSGS.HTTP_FETCH_PURCHASE_ORDERS_ERROR,
-    error,
-  };
+function httpErrorFetchingPurchaseOrdersMsg(error, originalMsg) {
+    return {
+        msg: MSGS.HTTP_FETCH_PURCHASE_ORDERS_ERROR,
+        error,
+        originalMsg
+    };
 }
 
 function httpPurchaseOrdersFetchedMsg(response) {
-    return { msg: MSGS.HTTP_FETCH_PURCHASE_ORDERS_SUCCESS,
-             response
-           };
+    return {
+        msg: MSGS.HTTP_FETCH_PURCHASE_ORDERS_SUCCESS,
+        response
+    };
 }
 
 export function update(msg, model) {
-    switch(msg.msg) {
-        case MSGS.HTTP_FETCH_PURCHASE_ORDERS_SUCCESS: {
-          return [{ ...model, block: false, purchase_orders: R.pathOr({}, ['data'], msg.response) }, null]
-        }
-        case MSGS.HTTP_ERROR: {
-          return [{ ...model, error: msg.error }, null]
-        }
-        case MSGS.HTTP_START: {
-            return [{...model, block: true}, null]
-        }
-        case MSGS.PO_SELECTED: {
-            const commands = null;
-            const messagesToPropagate = [navigateToPageMsg(PAGES.PO_DETAIL), retrievePurchaseOrderMsg(msg.id)];
-            //fetchPurchaseOrderCmd(msg.id), newPurchaseOrderMsg()]; 
-            
-            return [model, commands, messagesToPropagate];
-        }
-        case MSGS.NEW: {
-            //return [model, navigateToPageMsg(PAGES.PO_DETAIL, fetchProductsCmd )];
-            const commands = null;
-            const messagesToPropagate = [navigateToPageMsg(PAGES.PO_DETAIL), newPurchaseOrderMsg()]; 
-            return [{...model, _id: null}, commands, messagesToPropagate];
-            
-        }
-        case MSGS.REFRESH: {
-            const commands = fetchPurchaseOrdersCmd;
-            return [model, commands, null];
-            
-        }
-        default: 
+    switch (msg.msg) {
+        case MSGS.HTTP_FETCH_PURCHASE_ORDERS_SUCCESS:
+            {
+                return [{ ...model, block: false, purchase_orders: R.pathOr({}, ['data'], msg.response) }, null]
+            }
+        case MSGS.HTTP_FETCH_PURCHASE_ORDERS_ERROR:
+            {
+                const { error, originalMsg } = msg
+                const response = R.pathOr({}, ['response'], error)
+                const messagesToPropagate = [navigateToPageMsg(PAGES.LOGIN), redirectToMsg(PAGES.PO_MASTER, originalMsg)];
+                return response.status === 403 ? [{ ...model, block: false, error: '' }, null, messagesToPropagate] :
+                    [{ ...model, block: false, error: msg.error }, null, null]
+            }
+        case MSGS.HTTP_START:
+            {
+                return [{ ...model, block: true }, null]
+            }
+        case MSGS.PO_SELECTED:
+            {
+                const commands = null;
+                const messagesToPropagate = [navigateToPageMsg(PAGES.PO_DETAIL), retrievePurchaseOrderMsg(msg.id)];
+                //fetchPurchaseOrderCmd(msg.id), newPurchaseOrderMsg()]; 
+
+                return [model, commands, messagesToPropagate];
+            }
+        case MSGS.NEW:
+            {
+                //return [model, navigateToPageMsg(PAGES.PO_DETAIL, fetchProductsCmd )];
+                const commands = null;
+                const messagesToPropagate = [navigateToPageMsg(PAGES.PO_DETAIL), newPurchaseOrderMsg()];
+                return [{ ...model, _id: null }, commands, messagesToPropagate];
+
+            }
+        case MSGS.REFRESH:
+            {
+                const commands = fetchPurchaseOrdersCmd(msg);
+                return [model, commands, null];
+
+            }
+        default:
             return [model, null];
     }
 }
-

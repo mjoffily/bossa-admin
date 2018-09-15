@@ -1,6 +1,6 @@
 import * as R from 'ramda';
 import { update as updateLogin } from './login/Update'
-import { update as updateMaster } from './po_master/Update'
+import { update as updateMaster, refreshMsg } from './po_master/Update'
 import { update as updateDetail } from './po_detail/Update'
 
 export const NAVIGATION_MSGS = {
@@ -13,6 +13,8 @@ export const PAGES = {
     LOGIN: 'LOGIN'
 };
 
+export const DEFAULT_PAGE = PAGES.PO_MASTER
+export const DEFAULT_MESSAGE = refreshMsg
 
 export function navigateToPageMsg(page, msg) {
     return {
