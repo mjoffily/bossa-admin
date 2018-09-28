@@ -791,7 +791,6 @@ function upsertCOGS(cogs) {
 module.exports = {
     getLastUpdate,
     putLastUpdate,
-    putProduct,
     getAnalytics,
     getAnalyticsByProduct,
     putOrder,
