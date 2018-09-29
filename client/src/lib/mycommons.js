@@ -6,7 +6,7 @@ export const ENTER_KEY = 'Enter';
 export const NO_PHOTO_IMG = 'resources/nophoto.png';
 //export const DEFAULT_PAGE = 
 export const BOSSA_PRODUCTS_URL = 'https://bossa-online.myshopify.com/admin/products/';
-export const baseURL = '';
+export const baseURL = '/api';
 
 
 export const round = places =>
