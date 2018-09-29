@@ -4,9 +4,9 @@ import * as R from 'ramda';
 export const ESCAPE_KEY = 27;
 export const ENTER_KEY = 'Enter';
 export const NO_PHOTO_IMG = 'resources/nophoto.png';
-export const DEFAULT_PAGE = 
+//export const DEFAULT_PAGE = 
 export const BOSSA_PRODUCTS_URL = 'https://bossa-online.myshopify.com/admin/products/';
-export const baseURL = 'https://shopify-app-mjoffily.c9users.io/api';
+export const baseURL = '';
 
 
 export const round = places =>
