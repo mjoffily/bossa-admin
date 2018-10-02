@@ -4,6 +4,7 @@ var MongoClient = MongoDB.MongoClient;
 var Collection = MongoDB.Collection;
 var config = require('../_config')
 var R = require('ramda')
+const f = require('util').format;
 
 Promise.promisifyAll(MongoDB);
 Promise.promisifyAll(Collection.prototype);
@@ -25,16 +26,28 @@ const COGS = "cogs"
 var myDb;
 var dbclient;
 
+function connectionURL(env, database, config) {
+  const user = config.secrets[env].db_user;
+  console.log('USER: %s', user);
+  const password = config.secrets[env].db_pwd;
+  const authMechanism = 'DEFAULT';
+  return f('mongodb://%s:%s@%s/?authMechanism=%s', user, password, database, authMechanism);
+}
+
 function connect() {
   return new Promise(function (resolve, reject) {
     if (myDb === undefined) {
-      const env = R.defaultTo('dev', process.env.NODE_ENV);
       console.log('[connect] - new connection')
       console.log('NODE ENV: %s', process.env.NODE_ENV);
-      console.log('DATABASE: %s', config.mongoURI[env]);
-      MongoClient.connectAsync(config.mongoURI[env]).then(function(client) {
+      const env = R.defaultTo('dev', process.env.NODE_ENV);
+      console.log('Environment: %s', env);
+      const database = config.mongoURI[env];
+      console.log('DATABASE: %s', database);
+      const url = (env === 'dev') ? f('mongodb://%s', database) : connectionURL(env, database, config);
+      MongoClient.connectAsync(url).then(function(client) {
         myDb = client.db(DBNAME);
         dbclient = client;
+        console.log('[connect] - new connection successful')
         resolve(myDb);
       })
       .catch(function(err) {

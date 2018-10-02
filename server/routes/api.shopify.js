@@ -9,14 +9,16 @@ const R = require('ramda')
 
 
 const env = R.defaultTo('test', process.env.NODE_ENV);
-const BASE_URL = config.baseUrl[env];
+const BASE_URL = config.shopifyBaseUrl[env];
 const API_PRODUCT_COUNT = BASE_URL + '/products/count.json';
 const API_PRODUCTS = BASE_URL + '/products.json?limit=250&fields=id,product_type,tags,title,price,created_at,updated_at,image,variants';
 const API_PRODUCT_BASE = BASE_URL + '/products/$id.json'
 const API_PRODUCT = API_PRODUCT_BASE + '?fields=id,product_type,tags,title,price,created_at,updated_at,image,variants';
 const API_ORDERS = BASE_URL + '/orders.json?status=any&limit=250';
+const API_ORDERS_POST = BASE_URL + '/orders.json';
 const API_ORDER = BASE_URL + '/orders';
 const API_ORDERS_COUNT = BASE_URL + '/orders/count.json?';
+const API_DELETE_ORDER = BASE_URL + '/orders/$id.json';
 const API_TRANSACTIONS_FOR_ORDER = BASE_URL + '/orders/$id/transactions.json';
 const API_POST_PRODUCT = BASE_URL + '/products.json';
 
@@ -198,7 +200,7 @@ function postProduct(obj) {
                         .then(result => {
                             const shopifyProduct = result.data.product;
                             console.log("[postProduct] - END - HANDLE: [%s] SHOPIFY_ID: [%s]", obj.product.handle, shopifyProduct.id);
-                            resolve({ data: { status: 'success', product: shopifyProduct }});
+                            resolve({ data: { status: 'success', product: shopifyProduct } });
                         })
                         .catch(error => {
                             reject(error);
@@ -224,12 +226,12 @@ function deleteProduct(id) {
         auth
     }
     return axios(request)
-    
+
 }
 
 function putProductQuantity(obj, isAbsolute) {
     const { product_id, variant_id, qtd } = obj
-    const variant = isAbsolute ? { id: variant_id, inventory_quantity: qtd } : { id: variant_id, inventory_quantity_adjustment: qtd } 
+    const variant = isAbsolute ? { id: variant_id, inventory_quantity: qtd } : { id: variant_id, inventory_quantity_adjustment: qtd }
     const variants = [variant]
     const product = { id: product_id, variants }
     const data = { product }
@@ -245,9 +247,38 @@ function putProductQuantity(obj, isAbsolute) {
     return axios(request)
 }
 
+function postOrder(order) {
+    const url = API_ORDERS_POST;
+    console.log('[postOrder] - Request ' + url)
+    return axios.post(url, order, CONFIG)
+}
+
+function postTransactionForOrder(order_id, tran) {
+    const url = R.replace("$id", order_id, API_TRANSACTIONS_FOR_ORDER)
+    console.log('[postTransactionForOrder] - Request ' + url)
+    return axios.post(url, tran, CONFIG)
+}
+
+function getAllOrderIds() {
+    const url = API_ORDERS + '&fields=id'
+    console.log('[getAllOrderIds] - Request ' + url)
+    return axios.get(url, CONFIG)
+}
+
+function deleteOrder(order_id) {
+    const url = R.replace("$id", order_id, API_DELETE_ORDER)
+    console.log('[deleteOrder] - Request ' + url)
+    if (url.indexOf('test') === -1) {
+        throw "Seems like you want to delete orders in production??? Not allowed..."
+    }
+    else {
+        return axios.delete(url, CONFIG)
+    }
+}
+
 function addNewProduct(product, index) {
 
-    const handle = R.pipe( R.concat(product.product_type), R.concat(product.my_sku) )("-")
+    const handle = R.pipe(R.concat(product.product_type), R.concat(product.my_sku))("-")
     const title = product.title //"18k Gold Plated Earrings",
     const body_html = product.body_html
     const product_type = product.product_type
@@ -330,5 +361,9 @@ module.exports = {
     postProductThrottler,
     putProductQuantity,
     addNewProduct,
-    deleteProduct
+    deleteProduct,
+    postOrder,
+    postTransactionForOrder,
+    getAllOrderIds,
+    deleteOrder
 };
