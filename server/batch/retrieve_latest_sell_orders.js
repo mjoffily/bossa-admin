@@ -14,6 +14,7 @@ const viewSynchOrdersUrl = `${apiBaseUrl}/orders-to-be-synched`;
 
 // retrieve sell orders 
 function run() {
+    console.log('RUNNING Synch of ORDERS')
     const userid = config.getSecret('batch_user');
     const password = config.getSecret('batch_pwd');
     // login first to get a token
@@ -26,7 +27,7 @@ function run() {
                 // all good with login. Call the end point now
                 axios.get(synchOrdersUrl, { headers: { 'x-access-token': token } })
                     .then(result => {
-                        console.log(result.data)
+                        console.log('RESULT: ' + result.data)
                         return result;
                     })
                     .catch(error => {

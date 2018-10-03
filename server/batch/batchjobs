@@ -1,0 +1,3 @@
+#!/bin/sh
+
+/usr/local/bin/node /app/server/batch/retrieve_latest_sell_orders.js >> /app/server/logs/retrieve_latest_sell_orders.log
