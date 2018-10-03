@@ -95,5 +95,34 @@ function deleteAllOrders(order_id) {
         })
 }
 
+function copyAllOrdersFromProd() {
+
+    shopify.getAllOrderIdsFromProduction()
+        .then(result => {
+            console.log('All order ids: ', result.data)
+
+            const ids = R.map(obj => obj.id, result.data.orders)
+            console.log('cleaned IDs: ' + JSON.stringify(ids))
+            // const list = R.map(shopify.deleteOrder, ids)
+            // Promise.all(list)
+            //     .then(orderDeleteResult => {
+            //         // TODO Display more meaningful result 
+            //         console.log('Deleted results: ', orderDeleteResult)
+            //     })
+            //     .catch(error => {
+            //         console.log('ERROR (2) : %s', error)
+            //         console.log('ERROR (2) : Status: %s - %s ', error.response.status, error.response.statusText)
+            //         console.log('ERROR (2) : %s', JSON.stringify(error.response.data, null, 4))
+            //     })
+
+        })
+        .catch(error => {
+            console.log('ERROR (1) : %s', error)
+            console.log('ERROR (1) : Status: %s - %s ', error.response.status, error.response.statusText)
+            console.log('ERROR (1) : %s', JSON.stringify(error.response.data, null, 4))
+        })
+}
+
 setupNewDummyOrder()
 //deleteAllOrders()
+//retrieveAllOrdersFromProd()

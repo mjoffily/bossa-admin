@@ -6,7 +6,7 @@ const inventory = require('../routes/product-inventory/product-inventory');
 chai.should();
 chai.expect();
 
-process.env.NODE_ENV = 'test';
+process.env.NODE_ENV = 'automated_test';
 
 
 describe('[Test Product Inventory Validations]', function() {

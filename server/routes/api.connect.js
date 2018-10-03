@@ -6,11 +6,80 @@ const R = require('ramda')
 const moment = require('moment');
 
 
+function updateLastOrderUpdateDate() {
+    return new Promise(function(resolve, reject) {
+        console.log("[updateLastOrderUpdateDate] - START");
+        getMaxOrderUpdatedDate()
+            .then(maxdate => {
+                console.log("this is the max date for orders in the database [%s]", maxdate)
+                console.log("Will add a second so the next call will not pick up the orders up to this point")
+                var datePlus1Second = moment(maxdate).add(1, 'second').toDate()
+                putLastUpdate(constants.ORDER_LAST_UPDATE_ID, "ORDER", datePlus1Second)
+                    .then(result => {
+                        getLastUpdate(constants.ORDER_LAST_UPDATE_ID)
+                            .then(res => {
+                                console.log('test result: ' + res.last_refresh)
+                                console.log("[updateLastOrderUpdateDate] - END");
+                                resolve(res)
+                            })
+                            .catch(error => {
+                                reject(error)
+                            })
+                    })
+                    .catch(error => {
+                        reject(error)
+                    })
+            })
+            .catch(error => {
+                reject(error)
+            })
+    })
+}
+
+function getMaxOrderUpdatedDate() {
+    return new Promise(function(resolve, reject) {
+        console.log("[getMaxOrderUpdatedDate] - START");
+        dbc.connect()
+            .then(function(db) {
+                db.collection(dbc.ORDERS).aggregateAsync([{ $group: { _id: null, maxdate: { $max: "$order.updated_at" } } }])
+                    .then(cursor => {
+                        cursor.next()
+                            .then(result => {
+                                console.log('this is the result: %s', JSON.stringify(result, null, 4))
+                                const { maxdate } = result
+                                resolve(maxdate);
+                                console.log("[getMaxOrderUpdatedDate] - END");
+                            })
+                            .catch(error => {
+                                reject(error)
+                            })
+                    })
+            })
+    })
+}
+
+function getMaxProductUpdatedDate() {
+    return new Promise(function(resolve, reject) {
+        dbc.connect()
+            .then(function(db) {
+                db.collection(dbc.PRODUCTS).aggregateAsync([{ $group: { _id: null, maxdate: { $max: "$order.updated_at" } } }])
+                    .then(cursor => {
+                        cursor.next()
+                            .then(result => {
+                                resolve(result);
+                            })
+                            .catch(error => {
+                                reject(error)
+                            })
+                    })
+            })
+    })
+}
+
 function putLastUpdate(id, type, lastUpdate) {
     return new Promise(function(resolve, reject) {
         console.log("[putLastUpdate] - START");
         console.log("[putLastUpdate] lastUpdate: " + lastUpdate);
-
         dbc.connect()
             .then(function(db) {
                 db.collection(dbc.LAST_UPDATE).updateAsync({ _id: id }, { _id: id, last_refresh: lastUpdate, type: type, updated_at: new Date() }, { upsert: true })
@@ -19,12 +88,13 @@ function putLastUpdate(id, type, lastUpdate) {
                         resolve("ok");
                     })
                     .catch(function(err) {
-                        console.log("[putLastUpdate] - END (error)");
+                        console.log("(1) [putLastUpdate] - END (error)");
                         reject(err);
                     })
             })
-            .catch(function(err) {
-                reject(err);
+            .catch(error => {
+                console.log('(2) [putLastUpdate] - END (error)')
+                reject(error)
             })
     });
 }
@@ -220,6 +290,15 @@ function putOrder(order) {
                     .then(db => {
                         // make sure the created_at field is saved as a mongodb date
                         updatedOrder.created_at = new Date(updatedOrder.created_at);
+                        console.log('----------------------')
+                        console.log('----------------------')
+                        console.log('----------------------')
+                        console.log(updatedOrder.updated_at)
+                        console.log(new Date(updatedOrder.updated_at))
+                        console.log(moment(updatedOrder.updated_at).format())
+                        console.log('----------------------')
+                        console.log('----------------------')
+                        console.log('----------------------')
                         updatedOrder.updated_at = new Date(updatedOrder.updated_at);
                         updatedOrder.closed_at = new Date(updatedOrder.closed_at);
                         updatedOrder.total_price = parseFloat(updatedOrder.total_price);
@@ -263,22 +342,6 @@ function getCOGSForVariant(orderId, productId, variantId, orderDate, lineItem) {
 
                     //db.collection(PRODUCTS).aggregateAsync([{$project: {id: 1}}, { $match: { id: productId}}])
                     .then(cursor => {
-
-                        var cache = [];
-                        var str = JSON.stringify(cursor, function(key, value) {
-                            if (typeof value === 'object' && value !== null) {
-                                if (cache.indexOf(value) !== -1) {
-                                    // Circular reference found, discard key
-                                    return;
-                                }
-                                // Store value in our collection
-                                cache.push(value);
-                            }
-                            return value;
-                        });
-                        cache = null; // Enable garbage collection
-                        //console.log(str);      
-
                         cursor.next()
 
                             .then(productWrapper => {
@@ -789,6 +852,7 @@ function upsertCOGS(cogs) {
 
 
 module.exports = {
+    getMaxOrderUpdatedDate,
     getLastUpdate,
     putLastUpdate,
     getAnalytics,
@@ -811,5 +875,6 @@ module.exports = {
     upsertCOGS,
     addCOGSToVariant,
     handleCOGS,
-    cogsWrapperCurried
+    cogsWrapperCurried,
+    updateLastOrderUpdateDate
 };

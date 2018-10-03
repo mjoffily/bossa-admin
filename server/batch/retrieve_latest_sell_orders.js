@@ -6,6 +6,7 @@ const config = require('../_config');
 const apiBaseUrl = 'http://localhost:8080/api';
 const loginUrl = `${apiBaseUrl}/login`;
 const synchOrdersUrl = `${apiBaseUrl}/synch-orders`;
+const viewSynchOrdersUrl = `${apiBaseUrl}/orders-to-be-synched`;
 
 
 
@@ -23,19 +24,23 @@ function run() {
             console.log(data)
             if (status) {
                 // all good with login. Call the end point now
-               axios.get(synchOrdersUrl, {headers: { 'x-access-token': token }} )
-               .then(result => {
-                   console.log(result.data)
-                   return result;
-               })
-               .catch(error => {
-                   console.log(error)
-               })
-                
+                axios.get(synchOrdersUrl, { headers: { 'x-access-token': token } })
+                    .then(result => {
+                        console.log(result.data)
+                        return result;
+                    })
+                    .catch(error => {
+                        console.log('ERROR (2) : %s', error)
+                        console.log('ERROR (2) : Status: %s - %s ', error.response.status, error.response.statusText)
+                        console.log('ERROR (2) : %s', JSON.stringify(error.response.data, null, 4))
+                    })
+
             }
         })
         .catch(error => {
-            console.log(error);
+            console.log('ERROR (1) : %s', error)
+            console.log('ERROR (1) : Status: %s - %s ', error.response.status, error.response.statusText)
+            console.log('ERROR (1) : %s', JSON.stringify(error.response.data, null, 4))
         })
 }
 

@@ -43,7 +43,7 @@ function connect() {
       console.log('Environment: %s', env);
       const database = config.mongoURI[env];
       console.log('DATABASE: %s', database);
-      const url = (env === 'dev') ? f('mongodb://%s', database) : connectionURL(env, database, config);
+      const url = (env === 'dev' || env === 'automated_test') ? f('mongodb://%s', database) : connectionURL(env, database, config);
       MongoClient.connectAsync(url).then(function(client) {
         myDb = client.db(DBNAME);
         dbclient = client;

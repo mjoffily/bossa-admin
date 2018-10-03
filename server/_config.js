@@ -26,7 +26,7 @@ config.shopifyBaseUrl = {
   dev: 'https://bossaonline-test.myshopify.com/admin',
   automated_test: 'https://bossaonline-test.myshopify.com/admin',
   test: 'https://bossaonline-test.myshopify.com/admin',
-  stage: 'https://bossaonline-test.myshopify.com/admin',
+  stage: 'https://bossaonline-stage.myshopify.com/admin',
   prod: 'https://bossa-online.myshopify.com/admin'
 }
 

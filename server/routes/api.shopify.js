@@ -1,15 +1,17 @@
 'use strict';
 
-var axios = require('axios');
-var conn = require('./api.connect');
-var constants = require('./api.constants');
+const axios = require('axios');
+const conn = require('./api.connect');
+const moment = require('moment')
+const constants = require('./api.constants');
 const SEC = require('../secure/credentials')
-var config = require('../_config')
+const config = require('../_config')
 const R = require('ramda')
 
 
 const env = R.defaultTo('test', process.env.NODE_ENV);
 const BASE_URL = config.shopifyBaseUrl[env];
+
 const API_PRODUCT_COUNT = BASE_URL + '/products/count.json';
 const API_PRODUCTS = BASE_URL + '/products.json?limit=250&fields=id,product_type,tags,title,price,created_at,updated_at,image,variants';
 const API_PRODUCT_BASE = BASE_URL + '/products/$id.json'
@@ -57,15 +59,18 @@ function getProductsToSynch() {
 
 function getOrdersToSynch() {
     return new Promise(function(resolve, reject) {
+        console.log('[getOrdersToSynch] START')
         conn.getLastUpdate(constants.ORDER_LAST_UPDATE_ID).then(data => {
-            var api = API_ORDERS + "&updated_at_min=" + data.last_refresh
-            console.log("API: " + api);
+            var api = API_ORDERS + "&updated_at_min=" + moment(data.last_refresh).format()
+            console.log('[getOrdersToSynch] API: %s', api)
             axios.get(api, CONFIG)
                 .then(result => {
+                    console.log('[getOrdersToSynch] END')
                     resolve(result.data.orders);
 
                 })
                 .catch(error => {
+                    console.log('[getOrdersToSynch] ERROR - END')
                     reject(error);
                 });
         });
@@ -265,6 +270,23 @@ function getAllOrderIds() {
     return axios.get(url, CONFIG)
 }
 
+function getAllOrderIdsFromProduction() {
+    const BASE_URL_PROD = config.shopifyBaseUrl['prod'];
+
+    const url = BASE_URL_PROD + '/orders.json?status=any&fields=id&limit=250';
+    const auth_prod = {
+        username: config.secrets['prod'].api_key,
+        password: config.secrets['prod'].api_pass
+    }
+    const CONFIG_PROD = {
+        auth: auth_prod
+    }
+
+    console.log('[getAllOrderIdsFromProduction] - Request ' + url)
+    console.log('[getAllOrderIdsFromProduction] - ' + JSON.stringify(CONFIG_PROD))
+    return axios.get(url, CONFIG_PROD)
+}
+
 function deleteOrder(order_id) {
     const url = R.replace("$id", order_id, API_DELETE_ORDER)
     console.log('[deleteOrder] - Request ' + url)
@@ -365,5 +387,6 @@ module.exports = {
     postOrder,
     postTransactionForOrder,
     getAllOrderIds,
+    getAllOrderIdsFromProduction,
     deleteOrder
 };

@@ -221,7 +221,6 @@ router.get('/synch-orders', auth.verifyToken, (req, res) => {
     .then(orders => {
       shopify.getOrderTransactions(orders)
         .then(transactions => {
-          console.log("HERE - 2 " + transactions);
           var list = [];
           for (var i = 0, n = orders.length; i < n; i++) {
             //console.log("RESULTS: %O", JSON.stringify(transactions));
@@ -231,27 +230,33 @@ router.get('/synch-orders', auth.verifyToken, (req, res) => {
           }
           Promise.all(list)
             .then(() => {
-              console.log("HERE - 2222");
-              //conn.putOrderUpdate(new Date())
-              res.status(200).json({ totalOrders: orders.length, result: "Success" });
+              conn.updateLastOrderUpdateDate()
+              .then((response) => {
+                res.status(200).json({ totalOrders: orders.length, result: "Success", max_update_date: response.last_refresh});
+              })
+              .catch(error => {
+                console.log("(4) ERROR %O", error);
+                res.status(500).json(error);
+              });
             })
-            .catch(function(err) {
-              console.log("HERE - ERROR %O", err);
-              res.status(500).json(err);
+            .catch(error => {
+              console.log("(3) ERROR %O", error);
+              res.status(500).json(error);
             });
         })
-        .catch(err => {
-          res.status(500).send(err)
+        .catch(error => {
+          console.log("(2) ERROR %O", error);
+          res.status(500).send(error)
         });
     })
-    .catch(err => {
-      res.status(500).send(err)
+    .catch(error => {
+      console.log("(1) ERROR %O", error);
+      res.status(500).send(error)
     });
 });
 
 router.get('/synch-order/:id', auth.verifyToken, (req, res) => {
-  console.log("API /synch-order");
-  console.log("Params: " + JSON.stringify(req.params.id));
+  console.log("API /synch-order by ID [%s]", JSON.stringify(req.params.id));
   if (!req.params.id) {
     res.status(400).json({ message: "No order id found" });
     return;
@@ -265,7 +270,6 @@ router.get('/synch-order/:id', auth.verifyToken, (req, res) => {
       order.transactions = results[1];
       conn.putOrder(order)
         .then(function(data) {
-          //conn.putOrderUpdate(new Date())
           res.status(200).json(order);
         })
         .catch(function(err) {

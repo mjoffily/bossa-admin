@@ -1,0 +1,2 @@
+* 6-18 * * * /home/ubuntu/.nvm/versions/node/v8.11.1/bin/node /home/ubuntu/workspace/server/CLI/cli-orders.js >> /home/ubuntu/workspace/server/CLI/logs.txt 2>&1
+* 6-18 * * * /home/ubuntu/.nvm/versions/node/v8.11.1/bin/node /home/ubuntu/workspace/server/batch/retrieve_latest_sell_orders.js >> /home/ubuntu/workspace/server/batch/logs.txt 2>&1
