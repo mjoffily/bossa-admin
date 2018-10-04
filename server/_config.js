@@ -14,6 +14,17 @@ config.mongoURI = {
   prod: 'mongo-prod:27017'
 };
 
+// This is used so the batch docker container can call 
+// the application's API
+config.appBaseURI = {
+  dev: 'localhost:8080/api',
+  automated_test: 'localhost:8080/api',
+  test: 'bossa-admin-uat:8080/api',
+  stage: 'bossa-admin-stage:8080/api',
+  prod: 'bossa-admin-prod:8080/api'
+};
+
+
 config.secrets = {
   dev: {api_key: secrets.API_KEY_TEST_SHOP, api_pass: secrets.API_KEY_TEST_SHOP, db_user: '', db_pwd: '', batch_user: secrets.BATCH_USER_DEV, batch_pwd: secrets.BATCH_PWD_DEV},
   automated_test: {api_key: secrets.API_KEY_TEST_SHOP, api_pass: secrets.API_PASS_TEST_SHOP, db_user: '', db_pwd: '', batch_user: secrets.BATCH_USER_TEST, batch_pwd: secrets.BATCH_PWD_TEST},

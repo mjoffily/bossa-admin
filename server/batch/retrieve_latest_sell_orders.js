@@ -3,7 +3,11 @@ const R = require('ramda')
 
 const config = require('../_config');
 
-const apiBaseUrl = 'http://localhost:8080/api';
+console.log('NODE ENV: %s', process.env.NODE_ENV);
+const env = R.defaultTo('dev', process.env.NODE_ENV);
+console.log('Environment: %s', env);
+
+const apiBaseUrl = `http://${config.appBaseURI[env]}`;
 const loginUrl = `${apiBaseUrl}/login`;
 const synchOrdersUrl = `${apiBaseUrl}/synch-orders`;
 const viewSynchOrdersUrl = `${apiBaseUrl}/orders-to-be-synched`;
