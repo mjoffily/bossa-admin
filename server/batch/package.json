@@ -1,0 +1,14 @@
+{
+  "name": "bossa-batch",
+  "version": "0.0.1",
+  "description": "handle batch jobs for the bossa admin application",
+  "repository": "",
+  "author": "Marcio Joffily",
+  "dependencies": {
+    "async": "~0.2.8",
+    "axios": "~0.18.0",
+    "bluebird": "~3.5.1",
+    "moment": "^2.22.2",
+    "ramda": "^0.25.0"
+  }
+}

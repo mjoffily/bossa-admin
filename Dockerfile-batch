@@ -1,0 +1,34 @@
+FROM node:8.12-alpine
+
+# start crond service and add so it starts with the system boot
+# this will enable the crontab on alpine
+#RUN rc-service crond start && rc-update add crond
+
+RUN mkdir /app
+RUN mkdir /app/server
+RUN mkdir /app/server/logs
+RUN mkdir /app/server/batch
+
+# Add an "every minute" cron task to test it is working
+RUN mkdir /etc/periodic/everymin
+RUN echo "*       *       *       *       *       run-parts /etc/periodic/everymin" >> /etc/crontabs/root
+RUN printf "#!/bin/sh\n\n/usr/local/bin/node --version > /app/server/logs/testcron.log" >> /etc/periodic/everymin/testcron
+RUN chmod a+x /etc/periodic/everymin/testcron
+
+# install packages for both client and server
+COPY ./server/batch/package.json /app/server/batch/package.json
+WORKDIR /app/server/batch
+RUN npm install  
+
+
+# copy server files
+COPY ./server/_config.js /app/server/_config.js
+COPY ./server/batch/retrieve_latest_sell_orders.js /app/server/batch/retrieve_latest_sell_orders.js
+
+# Setup cron
+COPY ./server/batch/batchjobs /etc/periodic/15min
+RUN chmod a+x /etc/periodic/15min/batchjobs
+
+
+CMD ["crond", "-l2", "-f"]
+
