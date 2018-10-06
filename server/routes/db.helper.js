@@ -31,7 +31,7 @@ function connectionURL(env, database, config) {
   console.log('USER: %s', user);
   const password = config.secrets[env].db_pwd;
   const authMechanism = 'DEFAULT';
-  return f('mongodb://%s:%s@%s/?authMechanism=%s', user, password, database, authMechanism);
+  return f('mongodb://%s:%s@%s', user, password, database);
 }
 
 function connect() {
@@ -44,6 +44,7 @@ function connect() {
       const database = config.mongoURI[env];
       console.log('DATABASE: %s', database);
       const url = (env === 'dev' || env === 'automated_test') ? f('mongodb://%s', database) : connectionURL(env, database, config);
+      console.log("URL: %s", url);
       MongoClient.connectAsync(url).then(function(client) {
         myDb = client.db(DBNAME);
         dbclient = client;

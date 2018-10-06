@@ -23,7 +23,7 @@ const API_ORDERS_COUNT = BASE_URL + '/orders/count.json?';
 const API_DELETE_ORDER = BASE_URL + '/orders/$id.json';
 const API_TRANSACTIONS_FOR_ORDER = BASE_URL + '/orders/$id/transactions.json';
 const API_POST_PRODUCT = BASE_URL + '/products.json';
-
+console.log("THIS IS ENV: %s", env);
 const auth = {
     username: config.secrets[env].api_key,
     password: config.secrets[env].api_pass
@@ -31,6 +31,7 @@ const auth = {
 const CONFIG = {
     auth
 }
+console.log("AUTH: %s", JSON.stringify(CONFIG));
 //console.log = function() {}
 
 function getProductsToSynch() {
@@ -59,7 +60,7 @@ function getProductsToSynch() {
 
 function getOrdersToSynch() {
     return new Promise(function(resolve, reject) {
-        console.log('[getOrdersToSynch] START')
+        console.log('[getOrdersToSynch] START - ENV: [%s]', env)
         conn.getLastUpdate(constants.ORDER_LAST_UPDATE_ID).then(data => {
             var api = API_ORDERS + "&updated_at_min=" + moment(data.last_refresh).format()
             console.log('[getOrdersToSynch] API: %s', api)

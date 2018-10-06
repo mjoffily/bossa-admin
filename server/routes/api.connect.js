@@ -46,7 +46,7 @@ function getMaxOrderUpdatedDate() {
                         cursor.next()
                             .then(result => {
                                 console.log('this is the result: %s', JSON.stringify(result, null, 4))
-                                const { maxdate } = result
+                                const maxdate = (result) ? result.maxdate : constants.BEGIN_OF_TIME;
                                 resolve(maxdate);
                                 console.log("[getMaxOrderUpdatedDate] - END");
                             })
@@ -205,8 +205,10 @@ function getLastUpdate(id) {
                                 resolve(obj);
                             }
                             else {
-                                console.log("[getLastUpdate] - END (error - no items found)");
-                                reject({ message: "no data found", code: constants.NO_EXCHANGE_RATE_FOR_THIS_PAIR });
+                                var d = new Date('2017-01-01');
+                                console.log("[getLastUpdate] - no data found - will default to %", d);
+                                var obj = {last_refresh: d};
+                                resolve(obj);
                             }
                         })
                         .catch(function(err) {

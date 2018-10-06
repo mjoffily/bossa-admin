@@ -7,6 +7,7 @@ FROM node:8.12-alpine
 RUN mkdir /app
 RUN mkdir /app/server
 RUN mkdir /app/server/logs
+RUN mkdir /app/server/secure
 RUN mkdir /app/server/batch
 
 # Add an "every minute" cron task to test it is working
@@ -16,13 +17,15 @@ RUN printf "#!/bin/sh\n\n/usr/local/bin/node --version > /app/server/logs/testcr
 RUN chmod a+x /etc/periodic/everymin/testcron
 
 # install packages for both client and server
-COPY ./server/batch/package.json /app/server/batch/package.json
-WORKDIR /app/server/batch
+COPY ./server/batch/package.json /app/server/package.json
+WORKDIR /app/server
+RUN npm config set registry http://registry.npmjs.org
 RUN npm install  
 
 
 # copy server files
 COPY ./server/_config.js /app/server/_config.js
+COPY ./server/secure/credentials.js /app/server/secure/credentials.js
 COPY ./server/batch/retrieve_latest_sell_orders.js /app/server/batch/retrieve_latest_sell_orders.js
 
 # Setup cron
@@ -30,5 +33,6 @@ COPY ./server/batch/batchjobs /etc/periodic/15min
 RUN chmod a+x /etc/periodic/15min/batchjobs
 
 
+WORKDIR /app/server/batch
 CMD ["crond", "-l2", "-f"]
 
