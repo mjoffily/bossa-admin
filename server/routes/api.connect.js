@@ -852,6 +852,23 @@ function upsertCOGS(cogs) {
     });
 }
 
+function countOrders() {
+    return new Promise((resolve, reject) => {
+        dbc.connect()
+        .then(db => {
+            db.collection(dbc.ORDERS).countAsync({})
+            .then(result => {
+                console.log(JSON.stringify(result))
+                resolve(result)
+            })
+            .catch(error => {
+                console.log("ERROR: %s", JSON.stringify(error, null, 4))
+                reject(error)
+            })
+        })
+    })
+}
+
 
 module.exports = {
     getMaxOrderUpdatedDate,
@@ -878,5 +895,6 @@ module.exports = {
     addCOGSToVariant,
     handleCOGS,
     cogsWrapperCurried,
-    updateLastOrderUpdateDate
+    updateLastOrderUpdateDate,
+    countOrders
 };

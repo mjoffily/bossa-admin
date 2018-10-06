@@ -1,6 +1,7 @@
 FROM node:8.12-alpine
 
 RUN mkdir /app
+RUN mkdir /app/CLI
 RUN mkdir /app/server
 RUN mkdir /app/client
 RUN mkdir /app/client/dist
@@ -34,6 +35,10 @@ COPY ./server/server.js /app/server/server.js
 # copy client files
 COPY ./client/dist/index.html /app/client/dist/index.html
 COPY ./client/dist/bundle.js /app/client/dist/bundle.js
+
+# copy CLI files
+COPY ./CLI /app/CLI
+
 WORKDIR /app/server
 CMD ["node", "server.js"]
 

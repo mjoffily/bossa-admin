@@ -84,6 +84,16 @@ router.get('/orders-local', auth.verifyToken, (req, res) => {
     });
 });
 
+router.get('/sell-order-count-local', auth.verifyToken, (req, res) => {
+  conn.countOrders()
+    .then(data => {
+      res.status(200).json(data);
+    })
+    .catch(error => {
+      res.status(500).send(error)
+    });
+});
+
 router.get('/products-to-be-synched', auth.verifyToken, (req, res) => {
   console.log("[route products-to-be-synched] - START");
   shopify.getProductsToSynch()

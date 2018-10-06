@@ -1,24 +1,8 @@
 var R = require('ramda')
-var log = require('loglevel');
 var secrets = require('./secure/credentials')
 var config = {};
-config.log = log;
-config.log.setLevel('debug', false)
 
-config.log.debug('NODE ENVVV: %s', process.env.NODE_ENV);
 const env = R.defaultTo('dev', process.env.NODE_ENV);
-config.log.debug('Environment: %s', env);
-
-const DBNAME = "bossa";
-const DBURL = "mongodb://127.0.0.1:27017";
-
-config.mongoURI = {
-  dev: '127.0.0.1:27017',
-  automated_test: '127.0.0.1:27018',
-  test: 'mongo-uat:27017/bossa',
-  stage: 'mongo-stage:27017/bossa',
-  prod: 'mongo-prod:27017/bossa'
-};
 
 // This is used so the batch docker container can call 
 // the application's API
@@ -43,21 +27,8 @@ config.secrets = {
   prod: {api_key: secrets.API_KEY, api_pass: secrets.API_PASS, db_user: secrets.DB_USER_PROD, db_pwd: secrets.DB_PWD_PROD, batch_user: secrets.BATCH_USER_PROD, batch_pwd: secrets.BATCH_PWD_PROD}
 }
 
-config.shopifyBaseUrl = {
-  dev: 'https://bossaonline-test.myshopify.com/admin',
-  automated_test: 'https://bossaonline-test.myshopify.com/admin',
-  test: 'https://bossaonline-test.myshopify.com/admin',
-  stage: 'https://bossaonline-stage.myshopify.com/admin',
-  prod: 'https://bossa-online.myshopify.com/admin'
-}
-
 config.getSecret = function(name) {
-  //console.log("Getting secret for variable %s", name);
-  config.log.debug('NODE ENV: %s', process.env.NODE_ENV);
   const env = R.defaultTo('dev', process.env.NODE_ENV);
-  //console.log('this is the secrete %s', JSON.stringify(config.secrets));
-  config.log.debug('this is ENV %s', env);
-  //console.log('this is the secrete %s', config.secrets[env][name]);
   return config.secrets[env][name];
 }
 
