@@ -1,5 +1,7 @@
 sudo docker image build -f Dockerfile-batch -t bossa-batch .
 sudo docker container prune
 sudo docker container exec -it bossa-batch-stage /bin/sh
+sudo docker run -itd --rm -e NODE_ENV=prod --name mongo-prod -p 27030:27017 -v /data/prod/db:/data/db --net bossa-production-network mongo:3.6-stretch
+sudo docker run -itd --rm -e NODE_ENV=stage --name mongo-stage -p 27019:27017 -v /data/stage/db:/data/db --net bossa-stage-network mongo:3.6-stretch
 sudo docker run -itd --rm -e NODE_ENV=stage --name bossa-batch-stage --net bossa-stage-network bossa-batch
 sudo docker run -itd --rm -e NODE_ENV=stage --name bossa-admin-stage -p 2000:3000 --net bossa-stage-network bossa

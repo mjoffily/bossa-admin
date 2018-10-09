@@ -130,7 +130,6 @@ function countLocal(cmd) {
     return new Promise((resolve, reject) => {
 
         logger.setLogLevel(cmd.debug ? 5 : 1)
-        cmd.debug ? config.showEnv() : null;
         logger.info(`[countLocal] START - DEBUG [${cmd.debug}]`)
         login.getToken()
             .then(token => {

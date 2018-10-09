@@ -1,0 +1,2 @@
+-- Products without COGS
+db.products.aggregate([{$unwind: "$product.variants"},{$project: {_id: 0, _product_id:"$product.id",  _sku: "$product.variants.sku", variant: "$product.variants.id", cogs: "$product.variants.cogs"}}, {$match: {cogs: null}}, { $sort : { _sku : 1}}])

@@ -24,6 +24,10 @@ RUN npm install
 
 RUN apk del native-deps
 
+COPY ./CLI/package.json /app/CLI/package.json
+WORKDIR /app/CLI
+RUN npm install
+
 # copy server files
 COPY ./server/login /app/server/login
 COPY ./server/routes /app/server/routes
@@ -31,6 +35,7 @@ COPY ./server/secure /app/server/secure
 COPY ./server/_config.js /app/server/_config.js
 COPY ./server/_logger.js /app/server/_logger.js
 COPY ./server/server.js /app/server/server.js
+RUN mkdir /app/server/logs
 
 # copy client files
 COPY ./client/dist/index.html /app/client/dist/index.html
@@ -38,6 +43,8 @@ COPY ./client/dist/bundle.js /app/client/dist/bundle.js
 
 # copy CLI files
 COPY ./CLI /app/CLI
+WORKDIR /app/CLI/src/secure
+RUN ln -s /app/server/secure/credentials.js credentials.js
 
 WORKDIR /app/server
 CMD ["node", "server.js"]
