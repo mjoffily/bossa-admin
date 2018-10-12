@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const bossacli = require('commander');
 const cli_orders = require('./cli-orders')
-const config = require('./cli-config')
+const cli_products = require('./cli-products')
 
 bossacli
   .version('1.0.0', '-v, --version');
@@ -12,6 +12,16 @@ bossacli
   .option('-r, --remote', 'Count orders directly in shopify')
   .option('-d, --debug', 'Logs information about execution')
   .action(cli_orders.countLocal)
+
+bossacli
+  .command('products')
+  .description('Get products from local database (default) or directly from shopify (-r option)')
+  .option('-c, --count', 'Show product count (no product details)')
+  .option('-r, --remote', 'Only products without COGS')
+  .option('-n, --no-cogs', 'Only products without COGS')
+  .option('-s, --most-sold', 'Sort by number of product orders')
+  .option('-p, --published <yN>', 'Filter only published or unpublished products (y/n)')
+  .action(cli_products.run)
 
 bossacli
   .command('*')

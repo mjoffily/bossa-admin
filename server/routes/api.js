@@ -126,8 +126,10 @@ router.get('/synch-products', auth.verifyToken, (req, res) => {
       const list = R.map(conn.upsertProduct)(products);
       Promise.all(list)
         .then(() => {
-          //conn.putProductLastUpdate(new Date())
-          res.status(200).json({ totalProducts: products.length, result: "Success" });
+          conn.updateLastProductUpdateDate()
+          .then((response) => {
+                res.status(200).json({ totalProducts: products.length, result: "Success", max_update_date: response.last_refresh});
+              })
         })
         .catch((err) => {
           res.status(500).json(err);

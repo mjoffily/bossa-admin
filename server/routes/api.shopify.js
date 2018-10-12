@@ -13,7 +13,7 @@ const env = R.defaultTo('test', process.env.NODE_ENV);
 const BASE_URL = config.shopifyBaseUrl[env];
 
 const API_PRODUCT_COUNT = BASE_URL + '/products/count.json';
-const API_PRODUCTS = BASE_URL + '/products.json?limit=250&fields=id,product_type,tags,title,price,created_at,updated_at,image,variants';
+const API_PRODUCTS = BASE_URL + '/products.json?limit=250&fields=id,product_type,tags,title,price,created_at,updated_at,image,variants,published';
 const API_PRODUCT_BASE = BASE_URL + '/products/$id.json'
 const API_PRODUCT = API_PRODUCT_BASE + '?fields=id,product_type,tags,title,price,created_at,updated_at,image,variants';
 const API_ORDERS = BASE_URL + '/orders.json?status=any&limit=250';

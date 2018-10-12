@@ -63,4 +63,25 @@ const log = (message, type) => {
     console.log(colorMessage);
 }
 
-module.exports = {info, debug, warn, error, log, setLogLevel};
+function printJson(obj) {
+    return new Promise((resolve, reject) => {
+
+        var cache = [];
+        var str = JSON.stringify(obj, function(key, value) {
+            if (typeof value === 'object' && value !== null) {
+                if (cache.indexOf(value) !== -1) {
+                    // Circular reference found, discard key
+                    return;
+                }
+                // Store value in our collection
+                cache.push(value);
+            }
+            return value;
+        }, 4);
+        cache = null; // Enable garbage collection
+
+        console.log(str);
+        resolve(str);
+    })
+}
+module.exports = {info, debug, warn, error, log, setLogLevel, printJson};

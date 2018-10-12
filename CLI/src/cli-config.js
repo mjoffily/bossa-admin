@@ -11,13 +11,13 @@ config.appBaseURI = {
   automated_test: 'localhost:8080/api',
   test: 'bossa-admin-uat:3000/api',
   stage: 'localhost:3000/api',
-  //stage: 'bossa-admin-stage:3000/api',
-  prod: 'bossa-admin-prod:3000/api'
+  prod: 'localhost:3000/api'
 };
 
 config.localURLS = {
   loginURL: `http://${config.appBaseURI[env]}/login`,
   localSellOrderCountURL: `http://${config.appBaseURI[env]}/sell-order-count-local`,
+  localProducts: `http://${config.appBaseURI[env]}/products-local`,
 }
 
 config.secrets = {

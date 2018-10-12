@@ -36,6 +36,36 @@ function updateLastOrderUpdateDate() {
     })
 }
 
+function updateLastProductUpdateDate() {
+    return new Promise(function(resolve, reject) {
+        console.log("[updateLastProductUpdateDate] - START");
+        getMaxProductUpdatedDate()
+            .then(maxdate => {
+                console.log("this is the max date for products in the database [%s]", maxdate)
+                console.log("Will add a second so the next call will not pick up the products up to this point")
+                var datePlus1Second = moment(maxdate).add(1, 'second').toDate()
+                putLastUpdate(constants.PRODUCT_LAST_UPDATE_ID, "PRODUCT", datePlus1Second)
+                    .then(result => {
+                        getLastUpdate(constants.PRODUCT_LAST_UPDATE_ID)
+                            .then(res => {
+                                console.log('test result: ' + res.last_refresh)
+                                console.log("[updateLastProductUpdateDate] - END");
+                                resolve(res)
+                            })
+                            .catch(error => {
+                                reject(error)
+                            })
+                    })
+                    .catch(error => {
+                        reject(error)
+                    })
+            })
+            .catch(error => {
+                reject(error)
+            })
+    })
+}
+
 function getMaxOrderUpdatedDate() {
     return new Promise(function(resolve, reject) {
         console.log("[getMaxOrderUpdatedDate] - START");
@@ -46,7 +76,8 @@ function getMaxOrderUpdatedDate() {
                         cursor.next()
                             .then(result => {
                                 console.log('this is the result: %s', JSON.stringify(result, null, 4))
-                                const maxdate = (result) ? result.maxdate : constants.BEGIN_OF_TIME;
+                                // if the database is empty, synch everything
+                                const maxdate = (result) ? result.maxdate : constants.BEGIN_OF_TIMES;
                                 resolve(maxdate);
                                 console.log("[getMaxOrderUpdatedDate] - END");
                             })
@@ -62,11 +93,15 @@ function getMaxProductUpdatedDate() {
     return new Promise(function(resolve, reject) {
         dbc.connect()
             .then(function(db) {
-                db.collection(dbc.PRODUCTS).aggregateAsync([{ $group: { _id: null, maxdate: { $max: "$order.updated_at" } } }])
+                db.collection(dbc.PRODUCTS).aggregateAsync([{ $group: { _id: null, maxdate: { $max: "$product.updated_at" } } }])
                     .then(cursor => {
-                        cursor.next()
+                        return cursor.next()
                             .then(result => {
-                                resolve(result);
+                                console.log('this is the result: %s', JSON.stringify(result, null, 4))
+                                // if the database is empty, synch everything
+                                const maxdate = (result) ? result.maxdate : constants.BEGIN_OF_TIMES;
+                                resolve(maxdate);
+                                console.log("[getMaxProductUpdatedDate] - END");
                             })
                             .catch(error => {
                                 reject(error)
@@ -872,6 +907,7 @@ function countOrders() {
 
 module.exports = {
     getMaxOrderUpdatedDate,
+    getMaxProductUpdatedDate,
     getLastUpdate,
     putLastUpdate,
     getAnalytics,
@@ -896,5 +932,6 @@ module.exports = {
     handleCOGS,
     cogsWrapperCurried,
     updateLastOrderUpdateDate,
+    updateLastProductUpdateDate,
     countOrders
 };
