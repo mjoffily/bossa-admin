@@ -6,8 +6,8 @@ config.log = log;
 config.log.setLevel('debug', false)
 
 config.log.debug('NODE ENVVV: %s', process.env.NODE_ENV);
-const env = R.defaultTo('dev', process.env.NODE_ENV);
-config.log.debug('Environment: %s', env);
+config.env = R.defaultTo('dev', process.env.NODE_ENV);
+config.log.debug('Environment: %s', config.env);
 
 const DBNAME = "bossa";
 const DBURL = "mongodb://127.0.0.1:27017";
@@ -31,16 +31,76 @@ config.appBaseURI = {
 };
 
 config.localURLS = {
-  loginURL: `http://${config.appBaseURI[env]}/login`,
-  localSellOrderCountURL: `http://${config.appBaseURI[env]}/sell-order-count-local`,
+  loginURL: `http://${config.appBaseURI[config.env]}/login`,
+  localSellOrderCountURL: `http://${config.appBaseURI[config.env]}/sell-order-count-local`,
 }
 
 config.secrets = {
-  dev: {api_key: secrets.API_KEY_TEST_SHOP, api_pass: secrets.API_KEY_TEST_SHOP, db_user: '', db_pwd: '', batch_user: secrets.BATCH_USER_DEV, batch_pwd: secrets.BATCH_PWD_DEV},
-  automated_test: {api_key: secrets.API_KEY_TEST_SHOP, api_pass: secrets.API_PASS_TEST_SHOP, db_user: '', db_pwd: '', batch_user: secrets.BATCH_USER_TEST, batch_pwd: secrets.BATCH_PWD_TEST},
-  test: {api_key: secrets.API_KEY_TEST_SHOP, api_pass: secrets.API_PASS_TEST_SHOP, db_user: secrets.DB_USER_TEST, db_pwd: secrets.DB_PWD_TEST, batch_user: secrets.BATCH_USER_TEST, batch_pwd: secrets.BATCH_PWD_TEST},
-  stage: {api_key: secrets.API_KEY_STAGE_SHOP, api_pass: secrets.API_PASS_STAGE_SHOP, db_user: secrets.DB_USER_STAGE, db_pwd: secrets.DB_PWD_STAGE, batch_user: secrets.BATCH_USER_STAGE, batch_pwd: secrets.BATCH_PWD_STAGE},
-  prod: {api_key: secrets.API_KEY, api_pass: secrets.API_PASS, db_user: secrets.DB_USER_PROD, db_pwd: secrets.DB_PWD_PROD, batch_user: secrets.BATCH_USER_PROD, batch_pwd: secrets.BATCH_PWD_PROD}
+  dev: {
+    api_key: secrets.API_KEY_TEST_SHOP,
+    api_pass: secrets.API_KEY_TEST_SHOP,
+    db_user: '',
+    db_pwd: '',
+    batch_user: secrets.BATCH_USER_DEV,
+    batch_pwd: secrets.BATCH_PWD_DEV,
+    twilio_user: secrets.TWILIO_USER_PROD,
+    twilio_token: secrets.TWILIO_TOKEN_PROD,
+    twilio_mobile: secrets.TWILIO_MOBILE,
+    sms_to: secrets.SMS_TO,
+    mobile_D: secrets.mobile_D
+  },
+  automated_test: {
+    api_key: secrets.API_KEY_TEST_SHOP,
+    api_pass: secrets.API_PASS_TEST_SHOP,
+    db_user: '',
+    db_pwd: '',
+    batch_user: secrets.BATCH_USER_TEST,
+    batch_pwd: secrets.BATCH_PWD_TEST,
+    twilio_user: secrets.TWILIO_USER_PROD,
+    twilio_token: secrets.TWILIO_TOKEN_PROD,
+    twilio_mobile: secrets.TWILIO_MOBILE,
+    sms_to: secrets.SMS_TO,
+    mobile_D: secrets.mobile_D
+  },
+  test: {
+    api_key: secrets.API_KEY_TEST_SHOP,
+    api_pass: secrets.API_PASS_TEST_SHOP,
+    db_user: secrets.DB_USER_TEST,
+    db_pwd: secrets.DB_PWD_TEST,
+    batch_user: secrets.BATCH_USER_TEST,
+    batch_pwd: secrets.BATCH_PWD_TEST,
+    twilio_user: secrets.TWILIO_USER_PROD,
+    twilio_token: secrets.TWILIO_TOKEN_PROD,
+    twilio_mobile: secrets.TWILIO_MOBILE,
+    sms_to: secrets.SMS_TO,
+    mobile_D: secrets.mobile_D
+  },
+  stage: {
+    api_key: secrets.API_KEY_STAGE_SHOP,
+    api_pass: secrets.API_PASS_STAGE_SHOP,
+    db_user: secrets.DB_USER_STAGE,
+    db_pwd: secrets.DB_PWD_STAGE,
+    batch_user: secrets.BATCH_USER_STAGE,
+    batch_pwd: secrets.BATCH_PWD_STAGE,
+    twilio_user: secrets.TWILIO_USER_PROD,
+    twilio_token: secrets.TWILIO_TOKEN_PROD,
+    twilio_mobile: secrets.TWILIO_MOBILE,
+    sms_to: secrets.SMS_TO,
+    mobile_D: secrets.mobile_D
+  },
+  prod: {
+    api_key: secrets.API_KEY,
+    api_pass: secrets.API_PASS,
+    db_user: secrets.DB_USER_PROD,
+    db_pwd: secrets.DB_PWD_PROD,
+    batch_user: secrets.BATCH_USER_PROD,
+    batch_pwd: secrets.BATCH_PWD_PROD,
+    twilio_user: secrets.TWILIO_USER_PROD,
+    twilio_token: secrets.TWILIO_TOKEN_PROD,
+    twilio_mobile: secrets.TWILIO_MOBILE,
+    sms_to: secrets.SMS_TO,
+    mobile_D: secrets.mobile_D
+  }
 }
 
 config.shopifyBaseUrl = {
@@ -52,13 +112,7 @@ config.shopifyBaseUrl = {
 }
 
 config.getSecret = function(name) {
-  //console.log("Getting secret for variable %s", name);
-  config.log.debug('NODE ENV: %s', process.env.NODE_ENV);
-  const env = R.defaultTo('dev', process.env.NODE_ENV);
-  //console.log('this is the secrete %s', JSON.stringify(config.secrets));
-  config.log.debug('this is ENV %s', env);
-  //console.log('this is the secrete %s', config.secrets[env][name]);
-  return config.secrets[env][name];
+  return config.secrets[config.env][name];
 }
 
 module.exports = config;

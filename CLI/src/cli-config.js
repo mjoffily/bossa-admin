@@ -17,7 +17,11 @@ config.appBaseURI = {
 config.localURLS = {
   loginURL: `http://${config.appBaseURI[env]}/login`,
   localSellOrderCountURL: `http://${config.appBaseURI[env]}/sell-order-count-local`,
+  remoteSellOrderCountURL: `http://${config.appBaseURI[env]}/orders/count/remote`,
   localProducts: `http://${config.appBaseURI[env]}/products-local`,
+  postDummyProduct: `http://${config.appBaseURI[env]}/dummy/product`,
+  postDummyOrder: `http://${config.appBaseURI[env]}/dummy/order`,
+  countRemoteProducts: `http://${config.appBaseURI[env]}/products/count/remote`,
 }
 
 config.secrets = {

@@ -5,25 +5,59 @@ const config = require('./cli-config')
 const logger = require('./log')
 
 
-function countLocal(cmd) {
+function countOrders(cmd) {
     return new Promise((resolve, reject) => {
 
         logger.setLogLevel(cmd.debug ? 5 : 1)
-        logger.info(`[countLocal] START - DEBUG [${cmd.debug}]`)
+        logger.info(`[countOrders] START - DEBUG [${cmd.debug}] - REMOTE [${cmd.remote}]`)
         login.getToken()
             .then(token => {
                 // all good with login. Call the end point now
-                logger.debug(`Calling [${config.localURLS.localSellOrderCountURL}]`)
-                axios.get(config.localURLS.localSellOrderCountURL, { headers: { 'x-access-token': token } })
+                var url = cmd.remote ? config.localURLS.remoteSellOrderCountURL :
+                                       config.localURLS.localSellOrderCountURL;
+                logger.debug(`Calling [${url}]`)
+                axios.get(url, { headers: { 'x-access-token': token } })
                     .then(result => {
-                        logger.info(`[countLocal] - DONE`)
+                        logger.info(`[countOrders] - DONE`)
                         logger.log('RESULT: ' + result.data)
                         resolve(result);
                     })
                     .catch(error => {
-                        logger.error(`(2) : ${error}`)
-                        logger.error(`(2) : Status: ${error.response.status} - ${error.response.statusText}`)
-                        logger.error(`(2) : ${JSON.stringify(error.response.data, null, 4)}`)
+                        logger.error(`(3) : ${error}`)
+                        logger.error(`(3) : Status: ${error.response.status} - ${error.response.statusText}`)
+                        logger.error(`(3) : ${JSON.stringify(error.response.data, null, 4)}`)
+                    })
+            })
+            .catch(error => {
+                if (error.response) {
+                    logger.error(`(2) : ${error}`)
+                    logger.error(`(2) : Status: ${error.response.status} - ${error.response.statusText}`)
+                    logger.error(`(2) : ${JSON.stringify(error.response.data, null, 4)}`)
+                } else {
+                    logger.error(`(1) \n\n${error}\n\n`)
+                }
+            })
+    })
+}
+
+function createDummyOrder(cmd) {
+    return new Promise((resolve, reject) => {
+        logger.setLogLevel(cmd.debug ? 5 : 1)
+        logger.info(`[createDummyOrder] START - DEBUG [${cmd.debug}]`)
+        login.getToken()
+            .then(token => {
+                // all good with login. Call the end point now
+                logger.debug(`Calling [${config.localURLS.postDummyOrder}]`)
+                axios.get(config.localURLS.postDummyOrder, { headers: { 'x-access-token': token } })
+                    .then(orderId => {
+                        logger.info(`[createDummyOrder] - DONE`)
+                        logger.log('Order Id: ' + orderId.data)
+                        resolve(orderId.data);
+                    })
+                    .catch(error => {
+                        logger.error(`(1) : ${error}`)
+                        logger.error(`(1) : Status: ${error.response.status} - ${error.response.statusText}`)
+                        logger.error(`(1) : ${JSON.stringify(error.response.data, null, 4)}`)
                         //reject(error)
                     })
             })
@@ -33,10 +67,10 @@ function countLocal(cmd) {
                     logger.error(`(2) : Status: ${error.response.status} - ${error.response.statusText}`)
                     logger.error(`(2) : ${JSON.stringify(error.response.data, null, 4)}`)
                 } else {
-                    logger.error(`(1) \n\n${JSON.stringify(error, null, 4)}\n\n`)
+                    logger.error(`(3) \n\n${JSON.stringify(error, null, 4)}\n\n`)
                 }
             })
     })
 }
 
-module.exports = { countLocal }
+module.exports = { countOrders, createDummyOrder }

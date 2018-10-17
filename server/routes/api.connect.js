@@ -43,7 +43,9 @@ function updateLastProductUpdateDate() {
             .then(maxdate => {
                 console.log("this is the max date for products in the database [%s]", maxdate)
                 console.log("Will add a second so the next call will not pick up the products up to this point")
+                console.log('Moment format ' + moment(maxdate).format())
                 var datePlus1Second = moment(maxdate).add(1, 'second').toDate()
+                console.log(`Adding 1 sec [${datePlus1Second}]`)
                 putLastUpdate(constants.PRODUCT_LAST_UPDATE_ID, "PRODUCT", datePlus1Second)
                     .then(result => {
                         getLastUpdate(constants.PRODUCT_LAST_UPDATE_ID)
@@ -93,7 +95,7 @@ function getMaxProductUpdatedDate() {
     return new Promise(function(resolve, reject) {
         dbc.connect()
             .then(function(db) {
-                db.collection(dbc.PRODUCTS).aggregateAsync([{ $group: { _id: null, maxdate: { $max: "$product.updated_at" } } }])
+                db.collection(dbc.PRODUCTS).aggregateAsync([{ $group: { _id: null, maxdate: { $max: "$updated_at" } } }])
                     .then(cursor => {
                         return cursor.next()
                             .then(result => {

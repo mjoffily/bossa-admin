@@ -4,6 +4,7 @@ const axios = require('axios');
 const conn = require('./api.connect');
 const moment = require('moment')
 const constants = require('./api.constants');
+const helper = require('./api.helper');
 const SEC = require('../secure/credentials')
 const config = require('../_config')
 const R = require('ramda')
@@ -19,7 +20,7 @@ const API_PRODUCT = API_PRODUCT_BASE + '?fields=id,product_type,tags,title,price
 const API_ORDERS = BASE_URL + '/orders.json?status=any&limit=250';
 const API_ORDERS_POST = BASE_URL + '/orders.json';
 const API_ORDER = BASE_URL + '/orders';
-const API_ORDERS_COUNT = BASE_URL + '/orders/count.json?';
+const API_ORDERS_COUNT = BASE_URL + '/orders/count.json';
 const API_DELETE_ORDER = BASE_URL + '/orders/$id.json';
 const API_TRANSACTIONS_FOR_ORDER = BASE_URL + '/orders/$id/transactions.json';
 const API_POST_PRODUCT = BASE_URL + '/products.json';
@@ -38,7 +39,7 @@ function getProductsToSynch() {
     return new Promise(function(resolve, reject) {
         console.log("[getProductsToSynch] - START");
         conn.getLastUpdate(constants.PRODUCT_LAST_UPDATE_ID).then(data => {
-            var api = API_PRODUCTS + "&updated_at_min=" + data.last_refresh
+            var api = API_PRODUCTS + "&updated_at_min=" + moment(data.last_refresh).format('YYYY-MM-DDTHH:mm:ss') + 'Z'
             console.log("API: " + api);
             axios.get(api, CONFIG)
                 .then(posts => {
@@ -62,7 +63,7 @@ function getOrdersToSynch() {
     return new Promise(function(resolve, reject) {
         console.log('[getOrdersToSynch] START - ENV: [%s]', env)
         conn.getLastUpdate(constants.ORDER_LAST_UPDATE_ID).then(data => {
-            var api = API_ORDERS + "&updated_at_min=" + moment(data.last_refresh).format()
+            var api = API_ORDERS + "&updated_at_min=" + moment(data.last_refresh).format('YYYY-MM-DDTHH:mm:ss') + 'Z'
             console.log('[getOrdersToSynch] API: %s', api)
             axios.get(api, CONFIG)
                 .then(result => {
@@ -177,6 +178,40 @@ function countProducts(handle) {
             });
     });
 
+}
+
+function countAllProducts() {
+    return new Promise(function(resolve, reject) {
+        console.log("[countAllProducts] - START");
+        var api = API_PRODUCT_COUNT
+        console.log("API: " + api);
+        axios.get(api, CONFIG)
+            .then(result => {
+                const count = result.data.count;
+                console.log("[countAllProducts] - END count [%d]", count);
+                resolve(count);
+            })
+            .catch(error => {
+                reject(error);
+            });
+    });
+}
+
+function countAllOrders() {
+    return new Promise(function(resolve, reject) {
+        console.log("[countAllOrders] - START");
+        var api = API_ORDERS_COUNT + '?status=any'
+        console.log("API: " + api);
+        axios.get(api, CONFIG)
+            .then(result => {
+                const count = result.data.count;
+                console.log("[countAllOrders] - END count [%d]", count);
+                resolve(count);
+            })
+            .catch(error => {
+                reject(error);
+            });
+    });
 }
 
 function postProductThrottler(obj, i) {
@@ -299,6 +334,95 @@ function deleteOrder(order_id) {
     }
 }
 
+function addDummyOrder(saveError = false) {
+    return new Promise((resolve, reject) => {
+
+        console.log('[addDummyOrder]')
+        const order = {
+            "order": {
+                "email": "thereason1000@gmail.com",
+                "fulfillment_status": "fulfilled",
+                "send_receipt": true,
+                "send_fulfillment_receipt": true,
+                "line_items": [{
+                    "variant_id": 17293084295225,
+                    "quantity": 1
+                }],
+                "transactions": [{
+                    "kind": "authorization",
+                    "status": "success",
+                    "amount": 50.0
+                }]
+            }
+        }
+
+        const tran = {
+            "transaction": {
+                "amount": "50.00",
+                "kind": "capture",
+                "gateway": "manual",
+                "test": false
+            }
+        }
+
+        postOrder(order)
+            .then(result => {
+                console.log('---------------')
+                console.log('!!! Success - Order Created !!!')
+                console.log('---------------')
+                console.log(JSON.stringify(result.data, null, 4))
+                const id = result.data.order.id;
+
+                // post the payment transaction associated with this dummy order
+                //      const id = 717509656633;
+                postTransactionForOrder(id, tran)
+                    .then(tranResult => {
+                        console.log('---------------')
+                        console.log('!!! Success - TRANSACTION Created !!!')
+                        console.log('---------------')
+                        resolve(id)
+                    })
+                    .catch(error => {
+                        if (saveError) {
+                            helper.printJson(error.response).then(res => {
+                                helper.writeToFile('/tmp/obj2.js', res).then(res => {
+                                    console.log('ERROR object saved to /tmp/obj.js')
+                                })
+
+                            })
+                        }
+                        console.log('ERROR (2) : Status: %s - %s ', error.response.status, error.response.statusText)
+                        console.log('ERROR (2) : %s', JSON.stringify(error.response.data, null, 4))
+                        reject(error)
+                    })
+            })
+            .catch(error => {
+                console.log('ERROR (1) : Status: %s - %s ', error.response.status, error.response.statusText)
+                console.log('ERROR (1) : %s', JSON.stringify(error.response.data, null, 4))
+                reject(error)
+            })
+    })
+}
+
+
+
+function addDummyProduct() {
+    console.log('[addDummyProduct] - START ')
+    var product = {};
+    const today = new Date();
+    product.product_type = 'earring';
+    product.my_sku = 'SKU-' + today;
+    product.title = `DUMMY Product (${today})`;
+    product.body_html = 'dummy';
+    product.qtd = 5;
+    product.sale_price = 20.50;
+    product.cost_in_real = 11;
+    product.exchange_rate = 0.3;
+    product.cost_in_aud = 5;
+
+    return addNewProduct(product, 0)
+}
+
 function addNewProduct(product, index) {
 
     const handle = R.pipe(R.concat(product.product_type), R.concat(product.my_sku))("-")
@@ -381,6 +505,8 @@ module.exports = {
     convertToShopifyProduct,
     postProduct,
     countProducts,
+    countAllProducts,
+    countAllOrders,
     postProductThrottler,
     putProductQuantity,
     addNewProduct,
@@ -389,5 +515,7 @@ module.exports = {
     postTransactionForOrder,
     getAllOrderIds,
     getAllOrderIdsFromProduction,
-    deleteOrder
+    deleteOrder,
+    addDummyProduct,
+    addDummyOrder
 };

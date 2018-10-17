@@ -23,6 +23,7 @@
     "mongodb": "^3.0.2",
     "ramda": "^0.25.0",
     "socket.io": "~0.9.14",
+    "twilio": "^3.22.0",
     "winston": "^3.0.0-rc6"
   },
   "devDependencies": {

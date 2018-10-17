@@ -31,7 +31,7 @@ function run() {
                 // all good with login. Call the end point now
                 axios.get(synchOrdersUrl, { headers: { 'x-access-token': token } })
                     .then(result => {
-                        console.log('RESULT: ' + result.data)
+                        console.log('RESULT: ' + JSON.stringify(result.data))
                         return result;
                     })
                     .catch(error => {

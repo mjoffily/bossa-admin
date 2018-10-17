@@ -10,6 +10,7 @@ console.log('Environment: %s', env);
 const apiBaseUrl = `http://${config.appBaseURI[env]}`;
 const loginUrl = `${apiBaseUrl}/login`;
 const synchProductsUrl = `${apiBaseUrl}/synch-products`;
+//const synchProductsUrl = `${apiBaseUrl}/products-to-be-synched`;
 
 
 
@@ -27,7 +28,7 @@ function run() {
                 // all good with login. Call the end point now
                 axios.get(synchProductsUrl, { headers: { 'x-access-token': token } })
                     .then(result => {
-                        console.log('RESULT: ' + result.data)
+                        console.log('RESULT: ' + JSON.stringify(result.data, null, 4))
                         return result;
                     })
                     .catch(error => {

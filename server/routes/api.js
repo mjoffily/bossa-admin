@@ -15,7 +15,10 @@ const inventory = require('./product-inventory/product-inventory');
 
 
 router.get('/', (req, res) => {
-  res.send('api is up and running!');
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Message>Lucas is watching!</Message>
+</Response>`);
 });
 
 router.get('/test', auth.verifyToken, (req, res) => {
@@ -25,7 +28,6 @@ router.get('/test', auth.verifyToken, (req, res) => {
 
 router.post('/login', (req, res) => {
   console.log("[login] - START");
-  console.log("this is req: %s", JSON.stringify(req.body));
   const { userid, password } = req.body;
   if (!userid) {
     res.status(400).json({ error: { msg: 'User is required' } });
@@ -94,6 +96,28 @@ router.get('/sell-order-count-local', auth.verifyToken, (req, res) => {
     });
 });
 
+router.get('/products/count/remote', auth.verifyToken, (req, res) => {
+  shopify.countAllProducts()
+    .then(data => {
+      res.status(200).json(data);
+    })
+    .catch(error => {
+      res.status(500).send(error)
+    });
+});
+
+router.get('/orders/count/remote', auth.verifyToken, (req, res) => {
+  shopify.countAllOrders()
+    .then(data => {
+      res.status(200).json(data);
+    })
+    .catch(error => {
+      res.status(500).send(error)
+    });
+});
+
+
+
 router.get('/products-to-be-synched', auth.verifyToken, (req, res) => {
   console.log("[route products-to-be-synched] - START");
   shopify.getProductsToSynch()
@@ -127,16 +151,33 @@ router.get('/synch-products', auth.verifyToken, (req, res) => {
       Promise.all(list)
         .then(() => {
           conn.updateLastProductUpdateDate()
-          .then((response) => {
-                res.status(200).json({ totalProducts: products.length, result: "Success", max_update_date: response.last_refresh});
-              })
+            .then((response) => {
+              const msg = { totalProducts: products.length, result: "Success", max_update_date: response.last_refresh };
+              if (products.length > 0) {
+                helper.sendSMS(`SYNCH PRODUCTS\n\n${JSON.stringify(msg, null, 4)}`)
+                  .then(message => {
+                    res.status(200).json(msg);
+                  })
+                  .catch(error => {
+                    // don't care much about SMS error. Proceed as success
+                    console.log(error)
+                    res.status(200).json(msg);
+                  })
+              }
+              else {
+                res.status(200).json(msg);
+              }
+            })
+            .catch(error => {
+              res.status(500).json(error);
+            })
         })
-        .catch((err) => {
-          res.status(500).json(err);
+        .catch((error) => {
+          res.status(500).json(error);
         });
     })
     .catch(error => {
-      res.status(500).send(error)
+      res.status(500).json(error.message)
     });
 });
 
@@ -188,6 +229,23 @@ router.get('/purchase-order/:id', auth.verifyToken, (req, res) => {
     });
 })
 
+
+router.post('/dummy/product', auth.verifyToken, (req, res) => {
+  console.log('[/dummy/product] - START')
+  shopify.addDummyProduct()
+    .then(result => res.status(200).json(result))
+    .catch(error => res.status(500).json(error));
+})
+
+router.get('/dummy/order', auth.verifyToken, (req, res) => {
+  console.log('[/dummy/order] - START')
+  shopify.addDummyOrder()
+    .then(result => {
+        console.log('Complete: %s', result)
+        res.status(200).json(result)
+    })
+    .catch(error => res.status(500).json(error));
+})
 
 router.post('/purchase-order', auth.verifyToken, (req, res) => {
   console.log("[purchase-order] - START");
@@ -243,13 +301,13 @@ router.get('/synch-orders', auth.verifyToken, (req, res) => {
           Promise.all(list)
             .then(() => {
               conn.updateLastOrderUpdateDate()
-              .then((response) => {
-                res.status(200).json({ totalOrders: orders.length, result: "Success", max_update_date: response.last_refresh});
-              })
-              .catch(error => {
-                console.log("(4) ERROR %O", error);
-                res.status(500).json(error);
-              });
+                .then((response) => {
+                  res.status(200).json({ totalOrders: orders.length, result: "Success", max_update_date: response.last_refresh });
+                })
+                .catch(error => {
+                  console.log("(4) ERROR %O", error);
+                  res.status(500).json(error);
+                });
             })
             .catch(error => {
               console.log("(3) ERROR %O", error);

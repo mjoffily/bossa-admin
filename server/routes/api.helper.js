@@ -1,5 +1,14 @@
+var twilio = require('twilio');
 var Promise = require('bluebird');
 var fs = require('fs');
+const config = require('../_config')
+
+const accountSid = config.getSecret('twilio_user');
+const authToken = config.getSecret('twilio_token');
+const fromPhone = config.getSecret('twilio_mobile');
+const toPhone = config.getSecret('sms_to');
+const danielaMobile = config.getSecret('mobile_D');
+
 
 function printJson(obj) {
     return new Promise((resolve, reject) => {
@@ -46,8 +55,21 @@ function countSuccess(accummulator, currentValue) {
     return accummulator;
 }
 
+function sendSMS(msg, toDani) {
+    var client = new twilio(accountSid, authToken);
+    const phone = toDani ? danielaMobile : toPhone
+    console.log("toDani: %s", toDani)
+    console.log("The phone: %s", danielaMobile)
+    return client.messages.create({
+        body: `${msg} \n\nENV: ${config.env}`,
+        to: phone,
+        from: fromPhone
+    })
+}
+
 module.exports = {
     printJson,
     countSuccess,
-    writeToFile
+    writeToFile,
+    sendSMS
 };
