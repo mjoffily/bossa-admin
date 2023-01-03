@@ -7,7 +7,7 @@ const products_1 = [    {
         "product": {
             "id": 52799569940,
             "created_at": "2017-12-07T22:42:36+11:00",
-            "updated_at": "2018-05-28T19:55:00+10:00",
+            "updated_at": moment("2018-05-28T19:55:00+10:00").toDate(),
             "variants": [
                 {
                     "id": 658801000468,
@@ -35,7 +35,7 @@ const products_1 = [    {
         "product": {
             "id": 11362986452,
             "created_at": "2017-08-07T19:11:58+10:00",
-            "updated_at": "2018-02-11T21:50:41+11:00",
+            "updated_at": moment("2018-02-11T21:50:41+11:00").toDate(),
             "variants": [
                 {
                     "id": 47830774036,
@@ -72,7 +72,7 @@ const products_1 = [    {
         "product": {
             "id": 43767431188,
             "created_at": "2017-11-28T06:58:20+11:00",
-            "updated_at": "2018-05-28T02:17:35+10:00",
+            "updated_at": moment("2018-05-28T02:17:35+10:00").toDate(),
             "variants": [
                 {
                     "id": 524092833812,

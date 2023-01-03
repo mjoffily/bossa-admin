@@ -1,25 +1,30 @@
 'use strict';
 
-var axios = require('axios');
-var conn = require('./api.connect');
-var constants = require('./api.constants');
+const axios = require('axios');
+const conn = require('./api.connect');
+const moment = require('moment')
+const constants = require('./api.constants');
+const helper = require('./api.helper');
 const SEC = require('../secure/credentials')
-var config = require('../_config')
+const config = require('../_config')
 const R = require('ramda')
 
 
 const env = R.defaultTo('test', process.env.NODE_ENV);
-const BASE_URL = config.baseUrl[env];
+const BASE_URL = config.shopifyBaseUrl[env];
+
 const API_PRODUCT_COUNT = BASE_URL + '/products/count.json';
-const API_PRODUCTS = BASE_URL + '/products.json?limit=250&fields=id,product_type,tags,title,price,created_at,updated_at,image,variants';
+const API_PRODUCTS = BASE_URL + '/products.json?limit=250&fields=id,product_type,tags,title,price,created_at,updated_at,image,variants,published';
 const API_PRODUCT_BASE = BASE_URL + '/products/$id.json'
 const API_PRODUCT = API_PRODUCT_BASE + '?fields=id,product_type,tags,title,price,created_at,updated_at,image,variants';
 const API_ORDERS = BASE_URL + '/orders.json?status=any&limit=250';
+const API_ORDERS_POST = BASE_URL + '/orders.json';
 const API_ORDER = BASE_URL + '/orders';
-const API_ORDERS_COUNT = BASE_URL + '/orders/count.json?';
+const API_ORDERS_COUNT = BASE_URL + '/orders/count.json';
+const API_DELETE_ORDER = BASE_URL + '/orders/$id.json';
 const API_TRANSACTIONS_FOR_ORDER = BASE_URL + '/orders/$id/transactions.json';
 const API_POST_PRODUCT = BASE_URL + '/products.json';
-
+console.log("THIS IS ENV: %s", env);
 const auth = {
     username: config.secrets[env].api_key,
     password: config.secrets[env].api_pass
@@ -27,13 +32,14 @@ const auth = {
 const CONFIG = {
     auth
 }
+console.log("AUTH: %s", JSON.stringify(CONFIG));
 //console.log = function() {}
 
 function getProductsToSynch() {
     return new Promise(function(resolve, reject) {
         console.log("[getProductsToSynch] - START");
         conn.getLastUpdate(constants.PRODUCT_LAST_UPDATE_ID).then(data => {
-            var api = API_PRODUCTS + "&updated_at_min=" + data.last_refresh
+            var api = API_PRODUCTS + "&updated_at_min=" + moment(data.last_refresh).format('YYYY-MM-DDTHH:mm:ss') + 'Z'
             console.log("API: " + api);
             axios.get(api, CONFIG)
                 .then(posts => {
@@ -55,15 +61,18 @@ function getProductsToSynch() {
 
 function getOrdersToSynch() {
     return new Promise(function(resolve, reject) {
+        console.log('[getOrdersToSynch] START - ENV: [%s]', env)
         conn.getLastUpdate(constants.ORDER_LAST_UPDATE_ID).then(data => {
-            var api = API_ORDERS + "&updated_at_min=" + data.last_refresh
-            console.log("API: " + api);
+            var api = API_ORDERS + "&updated_at_min=" + moment(data.last_refresh).format('YYYY-MM-DDTHH:mm:ss') + 'Z'
+            console.log('[getOrdersToSynch] API: %s', api)
             axios.get(api, CONFIG)
                 .then(result => {
+                    console.log('[getOrdersToSynch] END')
                     resolve(result.data.orders);
 
                 })
                 .catch(error => {
+                    console.log('[getOrdersToSynch] ERROR - END')
                     reject(error);
                 });
         });
@@ -171,6 +180,40 @@ function countProducts(handle) {
 
 }
 
+function countAllProducts() {
+    return new Promise(function(resolve, reject) {
+        console.log("[countAllProducts] - START");
+        var api = API_PRODUCT_COUNT
+        console.log("API: " + api);
+        axios.get(api, CONFIG)
+            .then(result => {
+                const count = result.data.count;
+                console.log("[countAllProducts] - END count [%d]", count);
+                resolve(count);
+            })
+            .catch(error => {
+                reject(error);
+            });
+    });
+}
+
+function countAllOrders() {
+    return new Promise(function(resolve, reject) {
+        console.log("[countAllOrders] - START");
+        var api = API_ORDERS_COUNT + '?status=any'
+        console.log("API: " + api);
+        axios.get(api, CONFIG)
+            .then(result => {
+                const count = result.data.count;
+                console.log("[countAllOrders] - END count [%d]", count);
+                resolve(count);
+            })
+            .catch(error => {
+                reject(error);
+            });
+    });
+}
+
 function postProductThrottler(obj, i) {
     return new Promise((resolve, reject) => {
         sleeper(500 * i, i) //note 500*i - this is important. Cannot have a constant, say 500 ms here or it will not work.
@@ -198,7 +241,7 @@ function postProduct(obj) {
                         .then(result => {
                             const shopifyProduct = result.data.product;
                             console.log("[postProduct] - END - HANDLE: [%s] SHOPIFY_ID: [%s]", obj.product.handle, shopifyProduct.id);
-                            resolve({ data: { status: 'success', product: shopifyProduct }});
+                            resolve({ data: { status: 'success', product: shopifyProduct } });
                         })
                         .catch(error => {
                             reject(error);
@@ -224,12 +267,12 @@ function deleteProduct(id) {
         auth
     }
     return axios(request)
-    
+
 }
 
 function putProductQuantity(obj, isAbsolute) {
     const { product_id, variant_id, qtd } = obj
-    const variant = isAbsolute ? { id: variant_id, inventory_quantity: qtd } : { id: variant_id, inventory_quantity_adjustment: qtd } 
+    const variant = isAbsolute ? { id: variant_id, inventory_quantity: qtd } : { id: variant_id, inventory_quantity_adjustment: qtd }
     const variants = [variant]
     const product = { id: product_id, variants }
     const data = { product }
@@ -245,9 +288,144 @@ function putProductQuantity(obj, isAbsolute) {
     return axios(request)
 }
 
+function postOrder(order) {
+    const url = API_ORDERS_POST;
+    console.log('[postOrder] - Request ' + url)
+    return axios.post(url, order, CONFIG)
+}
+
+function postTransactionForOrder(order_id, tran) {
+    const url = R.replace("$id", order_id, API_TRANSACTIONS_FOR_ORDER)
+    console.log('[postTransactionForOrder] - Request ' + url)
+    return axios.post(url, tran, CONFIG)
+}
+
+function getAllOrderIds() {
+    const url = API_ORDERS + '&fields=id'
+    console.log('[getAllOrderIds] - Request ' + url)
+    return axios.get(url, CONFIG)
+}
+
+function getAllOrderIdsFromProduction() {
+    const BASE_URL_PROD = config.shopifyBaseUrl['prod'];
+
+    const url = BASE_URL_PROD + '/orders.json?status=any&fields=id&limit=250';
+    const auth_prod = {
+        username: config.secrets['prod'].api_key,
+        password: config.secrets['prod'].api_pass
+    }
+    const CONFIG_PROD = {
+        auth: auth_prod
+    }
+
+    console.log('[getAllOrderIdsFromProduction] - Request ' + url)
+    console.log('[getAllOrderIdsFromProduction] - ' + JSON.stringify(CONFIG_PROD))
+    return axios.get(url, CONFIG_PROD)
+}
+
+function deleteOrder(order_id) {
+    const url = R.replace("$id", order_id, API_DELETE_ORDER)
+    console.log('[deleteOrder] - Request ' + url)
+    if (url.indexOf('test') === -1) {
+        throw "Seems like you want to delete orders in production??? Not allowed..."
+    }
+    else {
+        return axios.delete(url, CONFIG)
+    }
+}
+
+function addDummyOrder(saveError = false) {
+    return new Promise((resolve, reject) => {
+
+        console.log('[addDummyOrder]')
+        const order = {
+            "order": {
+                "email": "thereason1000@gmail.com",
+                "fulfillment_status": "fulfilled",
+                "send_receipt": true,
+                "send_fulfillment_receipt": true,
+                "line_items": [{
+                    "variant_id": 17293084295225,
+                    "quantity": 1
+                }],
+                "transactions": [{
+                    "kind": "authorization",
+                    "status": "success",
+                    "amount": 50.0
+                }]
+            }
+        }
+
+        const tran = {
+            "transaction": {
+                "amount": "50.00",
+                "kind": "capture",
+                "gateway": "manual",
+                "test": false
+            }
+        }
+
+        postOrder(order)
+            .then(result => {
+                console.log('---------------')
+                console.log('!!! Success - Order Created !!!')
+                console.log('---------------')
+                console.log(JSON.stringify(result.data, null, 4))
+                const id = result.data.order.id;
+
+                // post the payment transaction associated with this dummy order
+                //      const id = 717509656633;
+                postTransactionForOrder(id, tran)
+                    .then(tranResult => {
+                        console.log('---------------')
+                        console.log('!!! Success - TRANSACTION Created !!!')
+                        console.log('---------------')
+                        resolve(id)
+                    })
+                    .catch(error => {
+                        if (saveError) {
+                            helper.printJson(error.response).then(res => {
+                                helper.writeToFile('/tmp/obj2.js', res).then(res => {
+                                    console.log('ERROR object saved to /tmp/obj.js')
+                                })
+
+                            })
+                        }
+                        console.log('ERROR (2) : Status: %s - %s ', error.response.status, error.response.statusText)
+                        console.log('ERROR (2) : %s', JSON.stringify(error.response.data, null, 4))
+                        reject(error)
+                    })
+            })
+            .catch(error => {
+                console.log('ERROR (1) : Status: %s - %s ', error.response.status, error.response.statusText)
+                console.log('ERROR (1) : %s', JSON.stringify(error.response.data, null, 4))
+                reject(error)
+            })
+    })
+}
+
+
+
+function addDummyProduct() {
+    console.log('[addDummyProduct] - START ')
+    var product = {};
+    const today = new Date();
+    product.product_type = 'earring';
+    product.my_sku = 'SKU-' + today;
+    product.title = `DUMMY Product (${today})`;
+    product.body_html = 'dummy';
+    product.qtd = 5;
+    product.sale_price = 20.50;
+    product.cost_in_real = 11;
+    product.exchange_rate = 0.3;
+    product.cost_in_aud = 5;
+
+    return addNewProduct(product, 0)
+}
+
 function addNewProduct(product, index) {
 
-    const handle = R.pipe( R.concat(product.product_type), R.concat(product.my_sku) )("-")
+    const handle = R.pipe(R.concat(product.product_type), R.concat(product.my_sku))("-")
     const title = product.title //"18k Gold Plated Earrings",
     const body_html = product.body_html
     const product_type = product.product_type
@@ -327,8 +505,17 @@ module.exports = {
     convertToShopifyProduct,
     postProduct,
     countProducts,
+    countAllProducts,
+    countAllOrders,
     postProductThrottler,
     putProductQuantity,
     addNewProduct,
-    deleteProduct
+    deleteProduct,
+    postOrder,
+    postTransactionForOrder,
+    getAllOrderIds,
+    getAllOrderIdsFromProduction,
+    deleteOrder,
+    addDummyProduct,
+    addDummyOrder
 };

@@ -14,7 +14,7 @@ function checkPassword(userid, plainTextPassword) {
             
                 const { userid, password } = userObj[0];
                 
-                console.debug("user {%s} found", userid, password);
+                console.debug("user {%s} found", userid);
                 bcrypt.compare(plainTextPassword, password)
                 .then( (res) => {
                     console.log("Result %s", res);

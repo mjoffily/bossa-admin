@@ -1,0 +1,5 @@
+#!/bin/sh
+
+/usr/local/bin/node /app/server/batch/synch_products.js >> /app/server/logs/synch_products.log
+
+

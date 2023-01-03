@@ -1,0 +1,43 @@
+FROM node:8.12-alpine
+
+# start crond service and add so it starts with the system boot
+# this will enable the crontab on alpine
+#RUN rc-service crond start && rc-update add crond
+
+RUN mkdir /app
+RUN mkdir /app/server
+RUN mkdir /app/server/logs
+RUN mkdir /app/server/secure
+RUN mkdir /app/server/batch
+
+# Add an "every minute" cron task to test it is working
+RUN mkdir /etc/periodic/everymin
+RUN echo "*       *       *       *       *       run-parts /etc/periodic/everymin" >> /etc/crontabs/root
+RUN printf "#!/bin/sh\n\n/usr/local/bin/node --version > /app/server/logs/testcron.log" >> /etc/periodic/everymin/testcron
+RUN chmod a+x /etc/periodic/everymin/testcron
+
+#Add an "every 10 minutes" cron configuration to run synch of products
+RUN mkdir /etc/periodic/10min
+RUN echo "*/10    *       *       *       *       run-parts /etc/periodic/10min" >> /etc/crontabs/root
+
+# install packages for batch
+COPY ./server/batch/package.json /app/server/package.json
+WORKDIR /app/server
+RUN npm config set registry http://registry.npmjs.org
+RUN npm install  
+
+
+# copy server files
+COPY ./server/_config.js /app/server/_config.js
+COPY ./server/secure/credentials.js /app/server/secure/credentials.js
+COPY ./server/batch/sync_orders.js /app/server/batch/sync_orders.js
+COPY ./server/batch/sync_products.js /app/server/batch/sync_products.js
+
+# Setup cron
+COPY ./server/batch/sync_orders_wrapper /etc/periodic/10min
+COPY ./server/batch/sync_products_wrapper /etc/periodic/15min
+RUN chmod a+x /etc/periodic/15min/batchjobs
+
+
+WORKDIR /app/server/batch
+CMD ["crond", "-l2", "-f"]

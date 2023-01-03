@@ -15,7 +15,7 @@ chai.expect();
 
 
 //chai.use(chaiHttp);
-process.env.NODE_ENV = 'test';
+process.env.NODE_ENV = 'automated_test';
 
 describe('[COGS Operations Test Cases]', function() {
 

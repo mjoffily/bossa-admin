@@ -1,0 +1,49 @@
+#!/usr/bin/env node
+const bossacli = require('commander');
+const cli_orders = require('./cli-orders')
+const cli_products = require('./cli-products')
+const cli_sms = require('./cli-sms')
+
+bossacli
+  .version('1.0.0', '-v, --version');
+
+bossacli
+  .command('countorders')
+  .description('Counts the number of sell orders in either the local database (default) or in shopify (see option)')
+  .option('-r, --remote', 'Count orders directly in shopify')
+  .option('-d, --debug', 'Logs information about execution')
+  .action(cli_orders.countOrders)
+
+bossacli
+  .command('dummyorder')
+  .description('Creates a dummy order in shopify')
+  .option('-d, --debug', 'Logs information about execution')
+  .action(cli_orders.createDummyOrder)
+
+bossacli
+  .command('products')
+  .description('Get products from local database (default) or directly from shopify (-r option)')
+  .option('-a, --add', 'Creates a dummy, non-published product in Shopify')
+  .option('-c, --count', 'Show product count (no product details)')
+  .option('-r, --remote', 'Only products from Shopify')
+  .option('-n, --no-cogs', 'Only products without COGS')
+  .option('-s, --most-sold', 'Sort by number of product orders')
+  .option('-p, --published <yN>', 'Filter only published or unpublished products (y/n)')
+  .option('-d, --debug', 'Logs information about execution')
+  .action(cli_products.run)
+
+bossacli
+  .command('sms <message>')
+  .description('Sends an SMS to Marcio')
+  .option('-d, --debug', 'Logs information about execution')
+  .option('-l, --daniela', 'Send the sms to daniela')
+  .action(cli_sms.run)
+
+bossacli
+  .command('*')
+  .action( () => bossacli.help())
+
+bossacli.parse(process.argv);
+if (!process.argv.slice(2).length) {
+  bossacli.help();
+} 
